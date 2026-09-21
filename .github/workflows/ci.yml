@@ -12,88 +12,88 @@ on:
 
 jobs:
   secret-scan:
-    name: DevSecOps — Secret Detection (Gitleaks)
+    name: DevSecOps — Detección de Secretos (Gitleaks)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Descargar repositorio
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Run Gitleaks Scan
+      - name: Ejecutar escaneo con Gitleaks
         run: |
           curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | tar -xz gitleaks
           ./gitleaks detect --verbose --redact
 
   frontend:
-    name: Frontend — Lint, Build & Tests (Angular 21)
+    name: Frontend — Análisis, Compilación y Pruebas (Angular 21)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./frontend
     steps:
-      - name: Checkout Code
+      - name: Descargar repositorio
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 22
+      - name: Configurar Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Dependencies
+      - name: Instalar dependencias
         run: npm ci
 
-      - name: Build Application
+      - name: Compilar aplicación web
         run: npm run build
 
-      - name: Run Tests (Vitest)
+      - name: Ejecutar pruebas unitarias (Vitest)
         run: npm test -- --watch=false
 
   backend:
-    name: Backend — Lint, Build & Tests (NestJS 11 + Prisma)
+    name: Backend — Linter, Compilación y Pruebas (NestJS 11 + Prisma)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./backend
     steps:
-      - name: Checkout Code
+      - name: Descargar repositorio
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 22
+      - name: Configurar Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
-      - name: Install Dependencies
+      - name: Instalar dependencias
         run: npm ci
 
-      - name: Generate Prisma Client
+      - name: Generar cliente de Prisma
         run: npx prisma generate
 
-      - name: Run Linter (oxlint)
+      - name: Ejecutar análisis estático (oxlint)
         run: npm run lint
 
-      - name: Build Application
+      - name: Compilar backend NestJS
         run: npm run build
 
-      - name: Run Tests (Jest)
+      - name: Ejecutar pruebas unitarias (Jest)
         run: npm test
 
   python-service:
-    name: Analytics — Lint & Tests (FastAPI + MAUT)
+    name: Motor Analítico — Linter y Pruebas (FastAPI + MAUT)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./python-service
     steps:
-      - name: Checkout Code
+      - name: Descargar repositorio
         uses: actions/checkout@v4
 
-      - name: Setup Python 3.12
+      - name: Configurar Python 3.12
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -102,50 +102,49 @@ jobs:
             python-service/requirements.txt
             python-service/requirements-dev.txt
 
-      - name: Install Dependencies
+      - name: Instalar dependencias
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt -r requirements-dev.txt
 
-      - name: Lint Code (flake8)
+      - name: Validar estilo PEP8 (flake8)
         run: flake8 .
 
-      - name: Run Tests (pytest)
+      - name: Ejecutar pruebas unitarias (pytest)
         run: pytest -v
 
   terraform:
-    name: Infrastructure — Terraform Lint & Validate
+    name: Infraestructura — Validación de Manifiesto Terraform
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./infra
     steps:
-      - name: Checkout Code
+      - name: Descargar repositorio
         uses: actions/checkout@v4
 
-      - name: Setup Terraform
+      - name: Configurar Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Initialize Terraform
+      - name: Inicializar Terraform
         run: terraform init
 
-      - name: Validate Terraform Syntax
+      - name: Validar sintaxis declarativa
         run: terraform validate
 
-      - name: Plan Infrastructure Execution
+      - name: Planificar ejecución de infraestructura
         run: terraform plan
 
   docker-build:
-    name: Docker Compose — Build & Integration Validation
+    name: Docker Compose — Construcción y Validación de Integración
     runs-on: ubuntu-latest
     needs: [frontend, backend, python-service, terraform]
     steps:
-      - name: Checkout Code
+      - name: Descargar repositorio
         uses: actions/checkout@v4
 
-      - name: Validate Compose File
+      - name: Validar configuración de docker-compose
         run: docker compose config
 
-      - name: Build All Containers
+      - name: Construir todas las imágenes de contenedores
         run: docker compose build
-

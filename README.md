@@ -250,7 +250,7 @@ Workflow `.github/workflows/ci.yml` con jobs independientes y un quality gate fi
 | `FRONTEND_PORT` | Puerto del cliente |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Credenciales de la auth básica EP1 |
 
-En GitHub Actions: **Variables** `ENVIRONMENT`, `POSTGRES_DB`, `POSTGRES_USER`; **Secrets** `POSTGRES_PASSWORD`.
+En GitHub Actions: **no se requiere configurar ningún secreto obligatorio en GitHub para la Entrega 1**, ya que el pipeline de CI/CD es totalmente autosuficiente (utiliza mocks en pruebas unitarias y valores seguros por defecto en la construcción de imágenes). En la Entrega 2, si se conectan servicios cloud de staging, se podrán parametrizar en el repositorio (**Settings > Secrets and variables > Actions**): **Variables** `ENVIRONMENT`, `POSTGRES_DB`, `POSTGRES_USER`; **Secrets** `POSTGRES_PASSWORD`.
 
 ---
 

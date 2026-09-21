@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id            String   @id @default(uuid())
+  name          String
+  category      String
+  brand         String
+  price         Float
+  qualityRating Float    @map("quality_rating")
+  stock         Int
+  specsScore    Float    @map("specs_score")
+  imageUrl      String?  @map("image_url")
+  description   String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("products")
+}
+
+model RankingHistory {
+  id              String   @id @default(uuid())
+  weightPrice     Float    @map("weight_price")
+  weightQuality   Float    @map("weight_quality")
+  weightStock     Float    @map("weight_stock")
+  weightSpecs     Float    @map("weight_specs")
+  topProductId    String   @map("top_product_id")
+  topProductName  String   @map("top_product_name")
+  topProductScore Float    @map("top_product_score")
+  explanation     String
+  evaluatedAt     DateTime @default(now()) @map("evaluated_at")
+
+  @@index([evaluatedAt])
+  @@map("ranking_history")
+}

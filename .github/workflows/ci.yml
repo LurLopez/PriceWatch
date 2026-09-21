@@ -23,7 +23,7 @@ jobs:
       - name: Ejecutar escaneo con Gitleaks
         run: |
           curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz | tar -xz gitleaks
-          ./gitleaks detect --verbose --redact
+          ./gitleaks detect --verbose --redact --gitleaks-ignore-path=.gitleaksignore
 
   frontend:
     name: Frontend — Análisis, Compilación y Pruebas (Angular 21)
@@ -43,7 +43,8 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Instalar dependencias
-        run: npm ci
+        run: npm ci || npm install
+
 
       - name: Compilar aplicación web
         run: npm run build

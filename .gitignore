@@ -54,3 +54,7 @@ Thumbs.db
 .idea/
 *.swp
 *~
+
+
+#plan
+docs/

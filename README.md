@@ -118,7 +118,7 @@ PriceWatch/
 └── README.md
 ```
 
-> Las carpetas `backend/`, `frontend/`, `python-service/`, `infra/` y `.github/` se crean en las fases 2–7 del plan (`docs/PLAN-EP1.md`).
+> Todos los componentes del walking skeleton (`backend/`, `frontend/`, `python-service/`, `infra/`, `.github/` y `docker-compose.yml`) se encuentran implementados, probados y orquestados.
 
 ---
 

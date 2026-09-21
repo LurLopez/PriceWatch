@@ -16,8 +16,8 @@ import {
 export class ApiService {
   private readonly baseUrl = '/api';
 
-  // Modo mock activado por defecto mientras el backend no esté levantado
-  public mockMode = true;
+  // Modo mock desactivado: consume API real con fallback en caso de error
+  public mockMode = false;
 
   private localHistory: EvaluationHistoryItem[] = [
     {

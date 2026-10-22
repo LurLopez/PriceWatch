@@ -33,12 +33,26 @@ describe('ProductsService', () => {
 
   it('debe devolver productos desde Prisma si existen', async () => {
     const mockList = [
-      { id: '1', name: 'Laptop A', category: 'Laptops', price: 1000, qualityRating: 4.5, stock: 10, specsScore: 85 },
+      {
+        id: '1',
+        name: 'Laptop A',
+        category: 'Laptops',
+        price: 1000,
+        qualityRating: 4.5,
+        stock: 10,
+        specsScore: 85,
+        imageUrl: null,
+      },
     ];
     prisma.product.findMany.mockResolvedValueOnce(mockList);
 
     const result = await service.findAll();
-    expect(result).toEqual(mockList);
+    expect(result[0]).toMatchObject({
+      quality_rating: 4.5,
+      specs_score: 85,
+      image_url: null,
+    });
+    expect(result[0]).not.toHaveProperty('qualityRating');
   });
 
   it('debe devolver el catálogo fallback si Prisma está vacío o falla', async () => {
@@ -47,5 +61,6 @@ describe('ProductsService', () => {
     const result = await service.findAll();
     expect(result.length).toBeGreaterThan(0);
     expect(result[0].name).toBeDefined();
+    expect(result[0].quality_rating).toBeDefined();
   });
 });

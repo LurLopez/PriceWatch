@@ -9,11 +9,18 @@ export class RankingController {
   constructor(private readonly rankingService: RankingService) {}
 
   @Post('evaluate')
-  @ApiOperation({ summary: 'Evaluar ranking multicriterio y persistir en historial' })
+  @ApiOperation({
+    summary: 'Evaluar ranking multicriterio y persistir en historial',
+  })
   @ApiResponse({ status: 200, description: 'Ranking calculado con éxito' })
   @ApiResponse({ status: 400, description: 'Ponderaciones inválidas' })
   async evaluate(@Body() body: EvaluateRankingDto) {
-    return this.rankingService.evaluate(body.weights, body.category);
+    return this.rankingService.evaluate(
+      body.weights,
+      body.category,
+      body.context_profile,
+      body.source_run_id,
+    );
   }
 
   @Get('history')

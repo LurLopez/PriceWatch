@@ -9,8 +9,15 @@ export class ProductsController {
 
   @Get()
   @ApiOperation({ summary: 'Listar productos disponibles' })
-  @ApiQuery({ name: 'category', required: false, description: 'Filtrar por categoría (ej. Laptops)' })
-  @ApiResponse({ status: 200, description: 'Lista de productos recuperada con éxito' })
+  @ApiQuery({
+    name: 'category',
+    required: false,
+    description: 'Filtrar por categoría (ej. Laptops)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de productos recuperada con éxito',
+  })
   async findAll(@Query('category') category?: string) {
     return this.productsService.findAll(category);
   }

@@ -1,3 +1,12 @@
+/* Variables compartidas */
+:root {
+  --pw-primary: #2563eb;
+  --pw-border: #e2e8f0;
+  --pw-surface: #ffffff;
+  --pw-text: #1e293b;
+  --pw-text-muted: #64748b;
+}
+
 /* Reset básico */
 * {
   box-sizing: border-box;
@@ -6,7 +15,12 @@
 }
 
 body {
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   background-color: #f8fafc;
   color: #1e293b;
   line-height: 1.5;
@@ -48,6 +62,14 @@ body {
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--pw-primary);
+  outline-offset: 2px;
 }
 
 /* Badges de recomendación */

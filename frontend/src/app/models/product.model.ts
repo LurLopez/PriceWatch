@@ -4,11 +4,14 @@ export interface Product {
   category: string;
   brand: string;
   price: number;
-  quality_rating: number;
-  stock: number;
-  specs_score: number;
+  quality_rating?: number | null;
+  stock?: number | null;
+  specs_score?: number | null;
   image_url?: string;
   description?: string;
+  source?: string | null;
+  source_url?: string | null;
+  currency?: string | null;
 }
 
 export interface WeightVector {
@@ -44,6 +47,44 @@ export interface EvaluationResponse {
   global_explanation: string;
   warnings: string[];
   ranking: RankedProduct[];
+  context_profile?: string;
+  active_criteria?: string[];
+  ignored_criteria?: string[];
+  effective_weights?: WeightVector;
+  source_run_id?: string | null;
+}
+
+export interface SourceListing {
+  external_id: string;
+  title: string;
+  category: string | null;
+  brand: string | null;
+  price: number;
+  currency: string | null;
+  rating: number | null;
+  availability_reference: number | null;
+  specs: Record<string, unknown> | null;
+  source_url: string;
+  content_hash: string;
+  retrieved_at: string;
+}
+
+export interface SourceSearchResponse {
+  run_id: string;
+  provider: string;
+  query: string;
+  status: string;
+  started_at: string;
+  retrieved_at: string | null;
+  duration_ms: number | null;
+  error_code: string | null;
+  metrics: {
+    received: number;
+    accepted: number;
+    rejected: number;
+    duplicates: number;
+  };
+  products: SourceListing[];
 }
 
 export interface EvaluationHistoryItem {
@@ -56,5 +97,7 @@ export interface EvaluationHistoryItem {
   top_product_name: string;
   top_product_score: number;
   explanation: string;
+  context_profile?: string;
+  source_run_id?: string | null;
   evaluated_at: string;
 }

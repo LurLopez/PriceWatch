@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
+import { Observable, of, throwError, timeout } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import {
   Product,
@@ -8,6 +8,7 @@ import {
   EvaluationResponse,
   RankedProduct,
   EvaluationHistoryItem,
+  SourceSearchResponse,
 } from '../models/product.model';
 
 @Injectable({
@@ -19,20 +20,7 @@ export class ApiService {
   // Modo mock desactivado: consume API real con fallback en caso de error
   public mockMode = false;
 
-  private localHistory: EvaluationHistoryItem[] = [
-    {
-      id: 'hist-1',
-      weight_price: 0.4,
-      weight_quality: 0.3,
-      weight_stock: 0.1,
-      weight_specs: 0.2,
-      top_product_id: 'prod-001',
-      top_product_name: 'ThinkPad Pro X1',
-      top_product_score: 86.4,
-      explanation: 'El ThinkPad Pro X1 es la opción más equilibrada considerando el peso asignado a calidad y especificaciones.',
-      evaluated_at: new Date().toISOString(),
-    },
-  ];
+  private localHistory: EvaluationHistoryItem[] = [];
 
   constructor(private readonly http: HttpClient) {}
 
@@ -41,25 +29,49 @@ export class ApiService {
       return of(this.getFallbackProducts());
     }
 
-    return this.http.get<Product[]>(`${this.baseUrl}/products`).pipe(
-      catchError(() => of(this.getFallbackProducts())),
-    );
+    return this.http
+      .get<Product[]>(`${this.baseUrl}/products`)
+      .pipe(catchError(() => of(this.getFallbackProducts())));
   }
 
-  evaluateRanking(weights: WeightVector): Observable<EvaluationResponse> {
+  searchDemoProducts(query: string, limit = 10): Observable<SourceSearchResponse> {
+    return this.http
+      .post<SourceSearchResponse>(`${this.baseUrl}/sources/demo-products/search`, {
+        query,
+        limit,
+        acknowledged: true,
+      })
+      .pipe(timeout({ first: 20_000 }));
+  }
+
+  evaluateRanking(
+    weights: WeightVector,
+    contextProfile = 'personalizado',
+    sourceRunId?: string,
+  ): Observable<EvaluationResponse> {
     if (this.mockMode) {
-      const res = this.computeLocalRanking(weights);
+      if (sourceRunId) {
+        return throwError(() => new Error('La fuente externa no está disponible en modo local.'));
+      }
+      const res = this.computeLocalRanking(weights, contextProfile);
       this.saveToLocalHistory(weights, res);
       return of(res);
     }
 
-    return this.http.post<EvaluationResponse>(`${this.baseUrl}/ranking/evaluate`, { weights }).pipe(
-      catchError(() => {
-        const res = this.computeLocalRanking(weights);
-        this.saveToLocalHistory(weights, res);
-        return of(res);
-      }),
-    );
+    return this.http
+      .post<EvaluationResponse>(`${this.baseUrl}/ranking/evaluate`, {
+        weights,
+        context_profile: contextProfile,
+        ...(sourceRunId ? { source_run_id: sourceRunId } : {}),
+      })
+      .pipe(
+        catchError((error: unknown) => {
+          if (sourceRunId) return throwError(() => error);
+          const res = this.computeLocalRanking(weights, contextProfile);
+          this.saveToLocalHistory(weights, res);
+          return of(res);
+        }),
+      );
   }
 
   getHistory(): Observable<EvaluationHistoryItem[]> {
@@ -67,9 +79,9 @@ export class ApiService {
       return of(this.localHistory);
     }
 
-    return this.http.get<EvaluationHistoryItem[]>(`${this.baseUrl}/ranking/history`).pipe(
-      catchError(() => of(this.localHistory)),
-    );
+    return this.http
+      .get<EvaluationHistoryItem[]>(`${this.baseUrl}/ranking/history`)
+      .pipe(catchError(() => of(this.localHistory)));
   }
 
   private saveToLocalHistory(weights: WeightVector, response: EvaluationResponse): void {
@@ -85,6 +97,8 @@ export class ApiService {
       top_product_name: top.name,
       top_product_score: top.final_score,
       explanation: response.global_explanation,
+      context_profile: response.context_profile,
+      source_run_id: response.source_run_id,
       evaluated_at: new Date().toISOString(),
     };
     this.localHistory.unshift(item);
@@ -155,9 +169,14 @@ export class ApiService {
     ];
   }
 
-  private computeLocalRanking(weights: WeightVector): EvaluationResponse {
+  private computeLocalRanking(
+    weights: WeightVector,
+    contextProfile = 'personalizado',
+  ): EvaluationResponse {
     const products = this.getFallbackProducts();
-    const sum = weights.weight_price + weights.weight_quality + weights.weight_stock + weights.weight_specs || 1;
+    const sum =
+      weights.weight_price + weights.weight_quality + weights.weight_stock + weights.weight_specs ||
+      1;
     const wp = weights.weight_price / sum;
     const wq = weights.weight_quality / sum;
     const ws = weights.weight_stock / sum;
@@ -168,18 +187,20 @@ export class ApiService {
     const maxPrice = Math.max(...prices);
     const priceRange = maxPrice - minPrice || 1;
 
-    const stocks = products.map((p) => p.stock);
+    const stocks = products.map((p) => p.stock ?? 0);
     const minStock = Math.min(...stocks);
     const maxStock = Math.max(...stocks);
     const stockRange = maxStock - minStock || 1;
 
     const ranked: RankedProduct[] = products.map((p) => {
       const normPrice = (maxPrice - p.price) / priceRange;
-      const normQuality = (p.quality_rating - 1) / 4;
-      const normStock = (p.stock - minStock) / stockRange;
-      const normSpecs = p.specs_score / 100;
+      const normQuality = ((p.quality_rating ?? 1) - 1) / 4;
+      const normStock = ((p.stock ?? 0) - minStock) / stockRange;
+      const normSpecs = (p.specs_score ?? 0) / 100;
 
-      const score = Math.round((normPrice * wp + normQuality * wq + normStock * ws + normSpecs * we) * 10000) / 100;
+      const score =
+        Math.round((normPrice * wp + normQuality * wq + normStock * ws + normSpecs * we) * 10000) /
+        100;
 
       let level = 'No Favorable';
       if (score >= 80) level = 'Altamente Recomendado';
@@ -212,7 +233,7 @@ export class ApiService {
 
     const top = ranked[0];
     const warnings: string[] = [];
-    if (top && top.stock < 5) {
+    if (top && (top.stock ?? 0) < 5) {
       warnings.push(`Stock bajo: quedan ${top.stock} unidades de ${top.name}.`);
     }
 
@@ -225,6 +246,16 @@ export class ApiService {
         : 'Sin productos para evaluar.',
       warnings,
       ranking: ranked,
+      context_profile: contextProfile,
+      active_criteria: ['price', 'quality', 'stock', 'specs'],
+      ignored_criteria: [],
+      effective_weights: {
+        weight_price: wp,
+        weight_quality: wq,
+        weight_stock: ws,
+        weight_specs: we,
+      },
+      source_run_id: null,
     };
   }
 }

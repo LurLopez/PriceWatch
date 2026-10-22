@@ -18,13 +18,20 @@ async function bootstrap() {
     }),
   );
 
-  // Permitir CORS para peticiones desde el frontend de Angular (puerto 4200)
-  app.enableCors();
+  // CORS configurable; por defecto se permite el cliente local durante el desarrollo
+  const corsOrigin = process.env.CORS_ORIGIN;
+  app.enableCors(
+    corsOrigin && corsOrigin !== '*'
+      ? { origin: corsOrigin.split(',').map((origin) => origin.trim()) }
+      : {},
+  );
 
   // Documentación OpenAPI / Swagger en /api/docs
   const config = new DocumentBuilder()
     .setTitle('PriceWatch API')
-    .setDescription('API REST Gateway y orquestación del Comparador Multicriterio PriceWatch')
+    .setDescription(
+      'API REST Gateway y orquestación del Comparador Multicriterio PriceWatch',
+    )
     .setVersion('1.0.0')
     .addTag('Health', 'Estado del servicio y base de datos')
     .addTag('Products', 'Catálogo de productos persistidos en PostgreSQL')
@@ -39,7 +46,9 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`Backend PriceWatch escuchando en: http://localhost:${port}/api`);
-  console.log(`Swagger OpenAPI disponible en: http://localhost:${port}/api/docs`);
+  console.log(
+    `Swagger OpenAPI disponible en: http://localhost:${port}/api/docs`,
+  );
 }
 
 bootstrap();

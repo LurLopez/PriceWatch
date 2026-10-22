@@ -17,11 +17,21 @@ import { EvaluationHistoryItem } from '../../models/product.model';
           <div class="card history-card">
             <div class="card-header">
               <span class="date">{{ formatDate(item.evaluated_at) }}</span>
-              <span class="score">Puntaje: <b>{{ item.top_product_score }}</b> / 100</span>
+              <span class="score"
+                >Puntaje: <b>{{ item.top_product_score }}</b> / 100</span
+              >
             </div>
 
             <h4>Ganador: {{ item.top_product_name }}</h4>
             <p class="explanation">{{ item.explanation }}</p>
+            @if (item.context_profile) {
+              <p class="context-info">
+                Perfil: {{ formatProfile(item.context_profile) }}
+                @if (item.source_run_id) {
+                  · Corrida de fuente: {{ item.source_run_id }}
+                }
+              </p>
+            }
 
             <div class="weights-info">
               <span><b>Pesos:</b></span>
@@ -39,63 +49,71 @@ import { EvaluationHistoryItem } from '../../models/product.model';
       </div>
     </div>
   `,
-  styles: [`
-    .history-container {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
+  styles: [
+    `
+      .history-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
 
-    .subtitle {
-      color: #64748b;
-    }
+      .subtitle {
+        color: #64748b;
+      }
 
-    .history-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
+      .history-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
 
-    .history-card {
-      margin-bottom: 0;
-    }
+      .history-card {
+        margin-bottom: 0;
+      }
 
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.85rem;
-      color: #64748b;
-      border-bottom: 1px solid #f1f5f9;
-      padding-bottom: 0.4rem;
-      margin-bottom: 0.5rem;
-    }
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        color: #64748b;
+        border-bottom: 1px solid #f1f5f9;
+        padding-bottom: 0.4rem;
+        margin-bottom: 0.5rem;
+      }
 
-    .score b {
-      color: #2563eb;
-    }
+      .score b {
+        color: #2563eb;
+      }
 
-    .history-card h4 {
-      font-size: 1.05rem;
-      margin-bottom: 0.3rem;
-    }
+      .history-card h4 {
+        font-size: 1.05rem;
+        margin-bottom: 0.3rem;
+      }
 
-    .explanation {
-      font-size: 0.9rem;
-      color: #334155;
-      margin-bottom: 0.5rem;
-    }
+      .explanation {
+        font-size: 0.9rem;
+        color: #334155;
+        margin-bottom: 0.5rem;
+      }
 
-    .weights-info {
-      display: flex;
-      gap: 0.75rem;
-      font-size: 0.82rem;
-      color: #64748b;
-      background: #f8fafc;
-      padding: 0.4rem 0.6rem;
-      border-radius: 4px;
-      flex-wrap: wrap;
-    }
-  `]
+      .context-info {
+        color: #0f766e;
+        font-size: 0.84rem;
+        overflow-wrap: anywhere;
+      }
+
+      .weights-info {
+        display: flex;
+        gap: 0.75rem;
+        font-size: 0.82rem;
+        color: #64748b;
+        background: #f8fafc;
+        padding: 0.4rem 0.6rem;
+        border-radius: 4px;
+        flex-wrap: wrap;
+      }
+    `,
+  ],
 })
 export class HistoryComponent implements OnInit {
   history: EvaluationHistoryItem[] = [];
@@ -110,6 +128,16 @@ export class HistoryComponent implements OnInit {
 
   getPercent(val: number): number {
     return Math.round(val * 100);
+  }
+
+  formatProfile(profile: string | undefined): string {
+    const labels: Record<string, string> = {
+      economia: 'Ahorro',
+      equilibrado: 'Equilibrio',
+      valoraciones: 'Valoraciones',
+      personalizado: 'Personalizado',
+    };
+    return profile ? (labels[profile] ?? profile) : 'Personalizado';
   }
 
   formatDate(isoString: string): string {

@@ -32,9 +32,24 @@ import { Product } from '../../models/product.model';
                 <span class="product-category">{{ product.category }} · {{ product.brand }}</span>
                 <p class="product-desc">{{ product.description }}</p>
                 <div class="product-meta">
-                  <span><b>Calidad:</b> {{ product.quality_rating }} / 5</span>
-                  <span><b>Stock:</b> {{ product.stock }} unid.</span>
-                  <span><b>Specs:</b> {{ product.specs_score }}/100</span>
+                  <span
+                    ><b>Calidad:</b>
+                    {{
+                      product.quality_rating != null
+                        ? product.quality_rating + ' / 5'
+                        : 'No disponible'
+                    }}</span
+                  >
+                  <span
+                    ><b>Stock:</b>
+                    {{ product.stock != null ? product.stock + ' unid.' : 'No disponible' }}</span
+                  >
+                  <span
+                    ><b>Specs:</b>
+                    {{
+                      product.specs_score != null ? product.specs_score + '/100' : 'No disponible'
+                    }}</span
+                  >
                 </div>
               </div>
               <div class="product-price-box">
@@ -50,90 +65,92 @@ import { Product } from '../../models/product.model';
       </div>
     </div>
   `,
-  styles: [`
-    .catalog-container {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
+  styles: [
+    `
+      .catalog-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
 
-    .catalog-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
+      .catalog-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
 
-    .subtitle {
-      color: #64748b;
-    }
+      .subtitle {
+        color: #64748b;
+      }
 
-    .search-box {
-      padding: 0.45rem 0.75rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      width: 220px;
-    }
+      .search-box {
+        padding: 0.45rem 0.75rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        width: 220px;
+      }
 
-    .products-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
+      .products-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
 
-    .product-card {
-      margin-bottom: 0;
-    }
+      .product-card {
+        margin-bottom: 0;
+      }
 
-    .product-main {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-    }
+      .product-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+      }
 
-    .product-info h3 {
-      font-size: 1.05rem;
-      margin-bottom: 0.2rem;
-    }
+      .product-info h3 {
+        font-size: 1.05rem;
+        margin-bottom: 0.2rem;
+      }
 
-    .product-category {
-      font-size: 0.8rem;
-      color: #64748b;
-      display: block;
-      margin-bottom: 0.4rem;
-    }
+      .product-category {
+        font-size: 0.8rem;
+        color: #64748b;
+        display: block;
+        margin-bottom: 0.4rem;
+      }
 
-    .product-desc {
-      font-size: 0.88rem;
-      color: #334155;
-      margin-bottom: 0.4rem;
-    }
+      .product-desc {
+        font-size: 0.88rem;
+        color: #334155;
+        margin-bottom: 0.4rem;
+      }
 
-    .product-meta {
-      display: flex;
-      gap: 1rem;
-      font-size: 0.825rem;
-      color: #64748b;
-    }
+      .product-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.825rem;
+        color: #64748b;
+      }
 
-    .product-meta b {
-      color: #1e293b;
-    }
+      .product-meta b {
+        color: #1e293b;
+      }
 
-    .product-price-box {
-      text-align: right;
-      min-width: 100px;
-    }
+      .product-price-box {
+        text-align: right;
+        min-width: 100px;
+      }
 
-    .price-val {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: #2563eb;
-    }
-  `]
+      .price-val {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #2563eb;
+      }
+    `,
+  ],
 })
 export class CatalogComponent implements OnInit {
   products: Product[] = [];

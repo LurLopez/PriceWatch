@@ -25,17 +25,63 @@ model Product {
 }
 
 model RankingHistory {
-  id              String   @id @default(uuid())
-  weightPrice     Float    @map("weight_price")
-  weightQuality   Float    @map("weight_quality")
-  weightStock     Float    @map("weight_stock")
-  weightSpecs     Float    @map("weight_specs")
-  topProductId    String   @map("top_product_id")
-  topProductName  String   @map("top_product_name")
-  topProductScore Float    @map("top_product_score")
+  id              String     @id @default(uuid())
+  weightPrice     Float      @map("weight_price")
+  weightQuality   Float      @map("weight_quality")
+  weightStock     Float      @map("weight_stock")
+  weightSpecs     Float      @map("weight_specs")
+  contextProfile  String     @default("personalizado") @map("context_profile")
+  sourceRunId     String?    @map("source_run_id")
+  sourceRun       SourceRun? @relation(fields: [sourceRunId], references: [id], onDelete: SetNull)
+  topProductId    String     @map("top_product_id")
+  topProductName  String     @map("top_product_name")
+  topProductScore Float      @map("top_product_score")
   explanation     String
-  evaluatedAt     DateTime @default(now()) @map("evaluated_at")
+  evaluatedAt     DateTime   @default(now()) @map("evaluated_at")
 
   @@index([evaluatedAt])
+  @@index([sourceRunId])
   @@map("ranking_history")
+}
+
+model SourceRun {
+  id          String           @id @default(uuid())
+  source      String
+  query       String
+  status      String           @default("RUNNING")
+  received    Int              @default(0)
+  accepted    Int              @default(0)
+  rejected    Int              @default(0)
+  duplicates  Int              @default(0)
+  startedAt   DateTime         @default(now()) @map("started_at")
+  retrievedAt DateTime?        @map("retrieved_at")
+  durationMs  Int?             @map("duration_ms")
+  errorCode   String?          @map("error_code")
+  listings    SourceListing[]
+  history     RankingHistory[]
+
+  @@index([source, startedAt])
+  @@map("source_runs")
+}
+
+model SourceListing {
+  id                    String    @id @default(uuid())
+  runId                 String    @map("run_id")
+  run                   SourceRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  externalId            String    @map("external_id")
+  title                 String
+  category              String?
+  brand                 String?
+  price                 Float
+  currency              String?
+  rating                Float?
+  availabilityReference Int?      @map("availability_reference")
+  specs                 Json?
+  sourceUrl             String    @map("source_url")
+  contentHash           String    @map("content_hash")
+  retrievedAt           DateTime  @map("retrieved_at")
+
+  @@unique([runId, externalId])
+  @@index([externalId])
+  @@map("source_listings")
 }

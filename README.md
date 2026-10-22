@@ -2,8 +2,8 @@
 
 > **Asignatura:** OII436-1 Ingeniería Web Avanzada — PUCV
 > **Autor:** Lur Lopez Fraile (`lur.lopez.f@mail.pucv.cl`)
-> **Entrega actual:** EP1 — Arquitectura, flujo vertical mínimo y pipeline DevSecOps
-> **Estado:** en desarrollo — tag objetivo `v0.1.0-ep1`
+> **Entrega actual:** EP2 — información web y prototipo adaptativo
+> **Estado:** implementación y pruebas locales verificadas; la fuente aporta datos sintéticos
 
 PriceWatch compara productos de comercio electrónico con **múltiples criterios ponderables por el usuario** (precio, calidad, stock y especificaciones) y entrega un ranking **explicable**: no solo dice qué producto conviene, sino por qué, mostrando la normalización y el aporte de cada criterio al puntaje final.
 
@@ -37,23 +37,26 @@ Los comparadores de precios actuales ordenan el catálogo por un **criterio úni
 **Incluye:**
 
 - Flujo vertical mínimo funcional: frontend Ionic → API NestJS → motor FastAPI → PostgreSQL.
-- Catálogo de productos persistido en PostgreSQL con migraciones y seed.
+- Catálogo de productos persistido en PostgreSQL con esquema Prisma y seed.
 - Evaluación multicriterio con degradación elegante ante fallos del motor.
 - Autenticación básica con token Bearer (credenciales por variables de entorno).
 - Contenerización completa con Docker Compose y pipeline CI/CD en GitHub Actions.
 - Documentación de proyecto, arquitectura y decisiones (ADRs).
 
-**No incluye (queda para EP2):**
+**Alcance de EP2:**
 
-- Scraping real de múltiples sitios y consumo de la API de Mercado Libre en producción.
-- Autenticación con usuarios persistidos, roles y refresh tokens.
-- Historial por usuario y alertas de precio.
+- Obtención acotada desde una API de demostración, preparación trazable y métricas de calidad.
+- Perfiles de prioridad explicables y editables por el usuario, aplicados al ranking.
+- Persistencia de corridas, registros normalizados y del perfil usado en cada evaluación.
+- No se integran ofertas comerciales reales ni se consulta Mercado Libre.
+
+**Fuera de alcance en esta entrega:** usuarios persistidos con roles, refresh tokens y alertas de precio. La autenticación sigue siendo la básica de EP1 y queda registrada como trabajo futuro.
 
 ### 1.5 Funcionalidades
 
 | # | Funcionalidad | Descripción |
 |---|---|---|
-| F1 | Catálogo | Lista de productos con precio, categoría, marca, calidad, stock y specs; filtro por categoría |
+| F1 | Catálogo | Lista de productos con precio, categoría, marca, calidad, stock y specs; búsqueda por texto y filtro por categoría en la API |
 | F2 | Evaluador ponderado | 4 sliders (precio, calidad, stock, specs); los pesos se normalizan si no suman 1 |
 | F3 | Ranking explicado | Posición, puntaje 0–100, nivel y desglose por criterio con aportes ponderados |
 | F4 | Explicación global | Producto ganador, texto explicativo y advertencias de stock crítico o agotado |
@@ -66,13 +69,17 @@ Los comparadores de precios actuales ordenan el catálogo por un **criterio úni
 
 ### 1.6 Fuente web
 
-- **EP1:** catálogo propio de ~10 productos de ejemplo (2–3 categorías) cargado por seed, que replica el esquema de la fuente real.
-- **EP2:** API pública de **Mercado Libre Chile** (respuestas JSON documentadas) y scraping ético futuro respetando `robots.txt`, con límite de frecuencia y atribución.
+- **EP1:** catálogo local de productos de ejemplo cargado por seed.
+- **EP2:** [DummyJSON Products Search](https://dummyjson.com/docs/products), API que declara ofrecer datos de ejemplo para pruebas y prototipos. La consulta es manual, solicita una página (máximo 20 registros), usa timeout y valida/deduplica antes de persistir la corrida.
+- **Límite:** sus precios, valoraciones y disponibilidad son sintéticos; la API no declara moneda. No se presentan como precios ni stock reales y se descartan imágenes, reseñas y datos de personas.
+- Mercado Libre no se integra: sus términos contienen restricciones sobre productos que compiten con sus servicios, y el acceso observado sin autorización respondió 403. Su uso requiere revisión y permiso; no se eluden controles.
 
 ### 1.7 Capacidad adaptativa
 
-- **Interfaz adaptable:** componentes Ionic con diseño responsive, probados en escritorio, tablet y móvil.
-- **Multiplataforma:** Capacitor habilita empaquetado Android a partir del mismo código; PWA opcional para instalación web.
+- **Adaptación por reglas:** perfiles `economia`, `equilibrado` y `valoraciones` proponen pesos iniciales; `personalizado` permite ajustarlos.
+- **Transparencia:** se omiten criterios sin datos comparables, se renormalizan los pesos disponibles y se muestran los criterios usados/omitidos. No hay entrenamiento ni inferencia de datos personales.
+- **Interfaz adaptable:** diseño responsive con Angular e Ionic para escritorio, tablet y móvil.
+- **Multiplataforma:** la configuración de Capacitor (`capacitor.config.ts`) deja preparado el empaquetado Android; el proyecto nativo no se versiona en esta entrega.
 - **Sistema tolerante a fallos:** timeouts de 4 s hacia el motor analítico y fallback con advertencia explícita al usuario.
 - **Arquitectura escalable:** servicios desacoplados (NestJS orquesta, FastAPI calcula) que pueden escalar o reemplazarse de forma independiente.
 
@@ -81,24 +88,26 @@ Los comparadores de precios actuales ordenan el catálogo por un **criterio úni
 ## 2. Arquitectura
 
 ```text
-Navegador / PWA / Android (Capacitor)
+Navegador / móvil
         │  Angular + Ionic (4200 / Nginx :80)
-        │  GET /api/products · POST /api/ranking/evaluate
+        │  GET /api/products · POST /api/sources/demo-products/search
+        │  POST /api/ranking/evaluate
         ▼
 NestJS API Gateway (3000)
   ├── Prisma ORM ──────► PostgreSQL 16 (5432)
-  └── HTTP + timeout 4s ─► FastAPI (8000) ── normalización Min-Max + MAUT + explicación
+  └── HTTP ─► FastAPI (8000) ── adquisición/preparación + MAUT + explicación
+                           └── HTTPS puntual ─► DummyJSON (datos de demostración)
 ```
 
 | Capa | Tecnología |
 |---|---|
-| Frontend | Ionic 8 + Angular standalone + Capacitor + Nginx |
+| Frontend | Ionic 9 + Angular 21 standalone + Capacitor + Nginx |
 | Backend | NestJS 11 + Prisma ORM + class-validator + Swagger |
 | Base de datos | PostgreSQL 16 (Docker + volumen persistente) |
-| Motor analítico | Python 3.12 + FastAPI + MAUT (Min-Max) |
+| Motor analítico | Python 3.12 + FastAPI + MAUT (Min-Max), preparación de fuente y adaptación por reglas |
 | Infraestructura | Docker Compose + Terraform (provider local, staging) |
 | CI/CD | GitHub Actions: lint, tests, auditoría, Gitleaks, quality gate |
-| Calidad | ESLint, Angular ESLint, flake8, pytest, Jest, Karma/Jasmine |
+| Calidad | oxlint, flake8, pytest, Jest y Vitest |
 
 ---
 
@@ -109,16 +118,16 @@ PriceWatch/
 ├── .github/workflows/ci.yml     # Pipeline DevSecOps
 ├── backend/                     # API NestJS + Prisma
 ├── frontend/                    # Cliente Ionic + Angular + Capacitor
-├── python-service/              # Motor MAUT en FastAPI
+├── python-service/              # Motor MAUT y preparación de fuente en FastAPI
 ├── infra/                       # Terraform (staging)
-├── docs/                        # Plan, diagramas y ADRs
+├── ep2/                         # Plan, decisión de fuente y guía de EP2
 ├── .env.example                 # Plantilla de variables (versionada)
 ├── .editorconfig
 ├── CONTRIBUTING.md
 └── README.md
 ```
 
-> Todos los componentes del walking skeleton (`backend/`, `frontend/`, `python-service/`, `infra/`, `.github/` y `docker-compose.yml`) se encuentran implementados, probados y orquestados.
+> La base EP1 y el flujo EP2 están implementados. Para la demostración se recomienda reconstruir las imágenes (`docker compose up --build -d`) y verificar los servicios con `docker compose ps`.
 
 ---
 
@@ -127,15 +136,18 @@ PriceWatch/
 ### 4.1 Docker Compose (recomendado)
 
 ```bash
-cp .env.example .env          # editar y cambiar las contraseñas
+cp .env.example .env          # editar contraseñas y habilitar la API de muestra localmente
+# En .env: DEMO_PRODUCTS_SOURCE_ENABLED=true
+# Si 3000 está ocupado, usar BACKEND_PORT=3001 y ajustar los curl a ese puerto.
+docker compose config -q
 docker compose up --build -d
-docker compose ps             # 5 servicios (migrate termina y sale)
+docker compose ps
 curl localhost:8000/health
 curl localhost:3000/api/health
 curl localhost:3000/api/products
 ```
 
-Interfaz web en `http://localhost:4200`. Para detener: `docker compose down` (agregar `-v` solo si se quiere borrar la base).
+El stack levanta cuatro servicios: PostgreSQL, FastAPI, NestJS y Nginx. La interfaz web queda en `http://localhost:4200` (o `FRONTEND_PORT`). Para detener: `docker compose down` (agregar `-v` solo si se quiere borrar la base).
 
 ### 4.2 Ejecución manual (desarrollo)
 
@@ -153,6 +165,7 @@ docker run -d --name pw-db -e POSTGRES_PASSWORD=pricewatch \
 cd python-service
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt -r requirements-dev.txt
+export DEMO_PRODUCTS_SOURCE_ENABLED=true
 uvicorn main:app --port 8000 --reload
 ```
 
@@ -162,12 +175,14 @@ uvicorn main:app --port 8000 --reload
 cd backend
 npm ci
 npx prisma generate
-npx prisma migrate dev
+npx prisma db push
 npx prisma db seed
+export DEMO_PRODUCTS_SOURCE_ENABLED=true
 npm run start:dev
 ```
 
 > Al ejecutar fuera de Docker, ajustar `DATABASE_URL` y `PYTHON_SERVICE_URL` en `.env` para usar `localhost` en vez de los nombres de servicio.
+> La bandera `DEMO_PRODUCTS_SOURCE_ENABLED=true` debe estar disponible tanto para NestJS como para FastAPI durante una demo local; no habilitarla en staging público sin protección de acceso.
 
 **Frontend (Ionic):**
 
@@ -190,8 +205,25 @@ npm start                     # proxy /api → http://localhost:3000
 | `GET` | `/api/products/:id` | Detalle de producto |
 | `POST` | `/api/ranking/evaluate` | Evaluación multicriterio (orquesta FastAPI) |
 | `GET` | `/api/ranking/history` | Historial persistido de evaluaciones |
+| `POST` | `/api/sources/demo-products/search` | Consulta manual, acotada y registrada a DummyJSON |
+| `GET` | `/api/sources/demo-products/runs` | Últimas corridas y métricas de extracción |
+| `GET` | `/api/sources/demo-products/runs/:id` | Corrida y registros normalizados |
 | `GET` | `/health` (FastAPI :8000) | Salud del motor analítico |
 | `POST` | `/evaluate` (FastAPI :8000) | Cálculo MAUT |
+| `POST` | `/sources/demo-products/search` (FastAPI :8000) | Consulta interna de la API de muestra |
+
+**Búsqueda explícita de una muestra:**
+
+```json
+POST /api/sources/demo-products/search
+{
+  "query": "laptop",
+  "limit": 10,
+  "acknowledged": true
+}
+```
+
+La respuesta contiene `run_id`, fecha, métricas y registros normalizados con `content_hash` y `source_url`. Para comparar esa muestra, incluye el `run_id` en `POST /api/ranking/evaluate`; no mezcles valores de moneda desconocida con el catálogo local.
 
 **Payload `POST /api/ranking/evaluate`:**
 
@@ -203,10 +235,14 @@ npm start                     # proxy /api → http://localhost:3000
     "weight_stock": 0.15,
     "weight_specs": 0.20
   },
-  "category": "Laptops",
-  "max_price": 1500
+  "context_profile": "equilibrado",
+  "category": "Laptops"
 }
 ```
+
+Para evaluar una corrida obtenida desde la fuente, añade `"source_run_id": "<id de corrida>"`.
+Los perfiles admitidos son `economia`, `equilibrado`, `valoraciones` y `personalizado`.
+Los criterios ausentes en uno o más productos se omiten para toda la muestra y los pesos restantes se normalizan.
 
 ---
 
@@ -214,10 +250,14 @@ npm start                     # proxy /api → http://localhost:3000
 
 | Componente | Comando | Cobertura |
 |---|---|---|
-| python-service | `pytest -v` · `flake8 .` | Normalización, pesos, validaciones 400, ranking |
-| backend | `npm test` · `npm run lint` | Health, productos (Prisma mockeado), ranking (éxito + fallback) |
-| frontend | `npm test -- --watch=false` · `npm run lint` | `ApiService` con `HttpTestingController` |
+| python-service | `python -m pytest -q` · `flake8 .` | Extracción (HTTP simulada), limpieza, deduplicación, perfiles, criterios faltantes y fallos |
+| backend | `npm test` · `npm run lint` · `npm run build` · `npm run test:e2e` | Corridas/métricas de fuente, persistencia mockeada, ranking, fallback y contrato HTTP |
+| frontend | `npm test -- --watch=false` · `npm run build` | Consulta acotada, envío del contexto y errores sin sustituir la muestra por datos locales |
 | infra | `terraform fmt -check` · `terraform validate` | Sintaxis y validez del manifiesto staging |
+
+Verificación local: **13 pruebas Jest**, **2 pruebas e2e**, **11 pruebas Vitest**, **15 pruebas pytest** y `flake8` sin errores. Las pruebas no realizan llamadas externas.
+
+**Sonda de la fuente (22/10/2026):** una consulta `laptop` devolvió 5 registros aceptados, 0 rechazados y 0 duplicados. En esa muestra sintética, `economia` eligió Lenovo Yoga 920 (83,53/100) y `valoraciones` eligió Huawei Matebook X Pro (94,08/100). La sonda pasó por FastAPI en memoria. Además, una prueba integrada por NestJS creó una corrida persistida y guardó un ranking en el historial. **Los datos son sintéticos, no precios reales.** Detalles en [`ep2/PLAN-EP2.md`](ep2/PLAN-EP2.md).
 
 ---
 
@@ -225,11 +265,11 @@ npm start                     # proxy /api → http://localhost:3000
 
 Workflow `.github/workflows/ci.yml` con jobs independientes y un quality gate final:
 
-1. **frontend:** `npm ci` → lint → tests → build → `npm audit --omit=dev --audit-level=critical`
-2. **backend:** `npm ci` → `prisma generate` → lint → tests → build → `npm audit`
+1. **frontend:** `npm ci` → formato (`npm run lint`) → build → tests → `npm audit --omit=dev --audit-level=critical`
+2. **backend:** `npm ci` → `prisma generate` → `prisma validate` → `oxlint` → tests → build → `npm audit --omit=dev --audit-level=critical`
 3. **python-service:** instalación de dependencias → `flake8` → `pytest -v`
-4. **terraform:** `fmt -check` → `init` → `validate` → `plan`
-5. **secrets-scanning:** Gitleaks sobre todo el historial (`fetch-depth: 0`)
+4. **terraform:** `terraform fmt -check` → `init` → `validate` → `plan`
+5. **secret-scan:** Gitleaks sobre todo el historial (`fetch-depth: 0`)
 6. **docker-build:** construye las 3 imágenes, solo si los 5 jobs anteriores pasan; si alguno falla, este job queda **skipped** (evidencia de bloqueo).
 
 ---
@@ -248,20 +288,27 @@ Workflow `.github/workflows/ci.yml` con jobs independientes y un quality gate fi
 | `PORT` / `BACKEND_PORT` | Puerto del backend NestJS |
 | `PYTHON_SERVICE_URL` / `PYTHON_PORT` | Ubicación y puerto del motor FastAPI |
 | `FRONTEND_PORT` | Puerto del cliente |
+| `CORS_ORIGIN` | Origen permitido por NestJS (`*` en desarrollo) |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Credenciales de la auth básica EP1 |
+| `DEMO_PRODUCTS_SOURCE_ENABLED` | Habilita la consulta explícita de DummyJSON; falso por defecto |
 
-En GitHub Actions: **no se requiere configurar ningún secreto obligatorio en GitHub para la Entrega 1**, ya que el pipeline de CI/CD es totalmente autosuficiente (utiliza mocks en pruebas unitarias y valores seguros por defecto en la construcción de imágenes). En la Entrega 2, si se conectan servicios cloud de staging, se podrán parametrizar en el repositorio (**Settings > Secrets and variables > Actions**): **Variables** `ENVIRONMENT`, `POSTGRES_DB`, `POSTGRES_USER`; **Secrets** `POSTGRES_PASSWORD`.
+En GitHub Actions no se realizan consultas externas; las pruebas usan transporte HTTP simulado. La bandera de fuente permanece desactivada por defecto en CI. **No habilitarla en un despliegue público sin proteger la ruta de consulta y revisar las condiciones de la fuente.**
 
 ---
 
-## 9. Prototipo Figma
+## 9. Prototipo navegable
 
-Enlace al prototipo navegable: _pendiente de publicación (se agrega antes del cierre de EP1)_.
+El prototipo navegable es la aplicación Angular/Ionic incluida en `frontend/`. Se puede abrir con Docker Compose en `http://localhost:4200` y recorrer sus tres vistas (catálogo, evaluador e historial). No se mantiene un enlace Figma separado para esta entrega.
 
 ---
 
 ## 10. Documentación adicional
 
-- `docs/PLAN-EP1.md` — plan de desarrollo por fases, riesgos y bitácora.
+- `ep2/PLAN-EP2.md` — requisitos, fuente de demostración, trazabilidad, adaptación y criterios de evaluación.
+- `ep2/ADR-003-fuente-y-adaptacion.md` — decisión de fuente y alcance adaptativo.
+- `ep2/GUIA-DEFENSA.md` — flujo, decisiones, límites y pasos de demostración.
 - `CONTRIBUTING.md` — GitFlow, commits convencionales y verificación local.
-- `docs/` (Fase 7) — diagramas Mermaid (contexto, contenedores, despliegue), modelo de datos y ADRs.
+
+## 11. Declaración de uso de herramientas de IA
+
+Se utilizó ChatGPT/OpenCode como apoyo para interpretar requisitos, proponer e implementar cambios, preparar pruebas y documentar decisiones. La revisión, autoría y responsabilidad del contenido entregado corresponden al estudiante, conforme a las instrucciones de integridad académica de la asignatura.

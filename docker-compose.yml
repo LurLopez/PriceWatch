@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pricewatch_pass}
       POSTGRES_DB: ${POSTGRES_DB:-pricewatch_db}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -25,9 +25,10 @@ services:
     container_name: pricewatch-python
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "127.0.0.1:${PYTHON_PORT:-8000}:8000"
     environment:
       PORT: 8000
+      DEMO_PRODUCTS_SOURCE_ENABLED: ${DEMO_PRODUCTS_SOURCE_ENABLED:-false}
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
       interval: 5s
@@ -42,12 +43,17 @@ services:
     container_name: pricewatch-backend
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "127.0.0.1:${BACKEND_PORT:-3000}:3000"
     environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      ENVIRONMENT: ${ENVIRONMENT:-staging}
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-pricewatch_user}:${POSTGRES_PASSWORD:-pricewatch_pass}@database:5432/${POSTGRES_DB:-pricewatch_db}?schema=public
       PYTHON_SERVICE_URL: http://python-service:8000
-      CORS_ORIGIN: "*"
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-lur.lopez.f@mail.pucv.cl}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change_me_too}
+      DEMO_PRODUCTS_SOURCE_ENABLED: ${DEMO_PRODUCTS_SOURCE_ENABLED:-false}
     depends_on:
       database:
         condition: service_healthy
@@ -67,7 +73,7 @@ services:
     container_name: pricewatch-frontend
     restart: unless-stopped
     ports:
-      - "4200:80"
+      - "${FRONTEND_PORT:-4200}:80"
     depends_on:
       backend:
         condition: service_healthy

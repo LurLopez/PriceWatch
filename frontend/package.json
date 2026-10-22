@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "lint": "prettier --check \"src/**/*.{ts,html,css}\"",
+    "format": "prettier --write \"src/**/*.{ts,html,css}\""
   },
   "private": true,
   "packageManager": "npm@11.6.0",
@@ -17,6 +19,8 @@
     "@angular/forms": "^21.2.0",
     "@angular/platform-browser": "^21.2.0",
     "@angular/router": "^21.2.0",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "@ionic/angular": "^9.0.4",
     "ionicons": "^8.1.0",
     "rxjs": "~7.8.0",
@@ -26,6 +30,7 @@
     "@angular/build": "^21.2.24",
     "@angular/cli": "^21.2.24",
     "@angular/compiler-cli": "^21.2.0",
+    "@capacitor/cli": "^8.5.3",
     "jsdom": "^28.0.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.2",

@@ -11,11 +11,7 @@ describe('ApiService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        ApiService,
-        provideHttpClient(),
-        provideHttpClientTesting(),
-      ],
+      providers: [ApiService, provideHttpClient(), provideHttpClientTesting()],
     });
 
     service = TestBed.inject(ApiService);
@@ -68,5 +64,29 @@ describe('ApiService', () => {
     expect(response.ranking.length).toBeGreaterThan(0);
     expect(response.top_recommended_product_id).toBeTruthy();
     expect(response.ranking[0].rank_position).toBe(1);
+  });
+
+  it('should request a bounded sample source only after explicit search', async () => {
+    const promise = firstValueFrom(service.searchDemoProducts('laptop', 5));
+    const req = httpMock.expectOne('/api/sources/demo-products/search');
+
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ query: 'laptop', limit: 5, acknowledged: true });
+    req.flush({ run_id: 'run-1', products: [], metrics: {} });
+    await promise;
+  });
+
+  it('should not replace a failed external ranking with the local seed catalog', async () => {
+    const weights: WeightVector = {
+      weight_price: 0.4,
+      weight_quality: 0.3,
+      weight_stock: 0.1,
+      weight_specs: 0.2,
+    };
+    const promise = firstValueFrom(service.evaluateRanking(weights, 'equilibrado', 'run-1'));
+    const req = httpMock.expectOne('/api/ranking/evaluate');
+    req.error(new ProgressEvent('error'));
+
+    await expect(promise).rejects.toBeTruthy();
   });
 });

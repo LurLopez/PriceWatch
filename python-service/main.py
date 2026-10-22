@@ -4,10 +4,15 @@ Microservicio de cálculo analítico especializado en normalización
 Min-Max y optimización de utilidad multiatributo (MAUT).
 """
 
-from typing import List, Optional
+from typing import Dict, List, Literal, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from sources import (
+    SourceSearchRequest,
+    SourceSearchResponse,
+    search_demo_products,
+)
 
 app = FastAPI(
     title="PriceWatch Analytics Evaluator",
@@ -37,16 +42,21 @@ class ProductInput(BaseModel):
     category: str
     brand: str
     price: float = Field(..., gt=0)
-    quality_rating: float = Field(..., ge=1.0, le=5.0)
-    stock: int = Field(..., ge=0)
-    specs_score: float = Field(..., ge=0.0, le=100.0)
+    quality_rating: Optional[float] = Field(None, ge=0.0, le=5.0)
+    stock: Optional[int] = Field(None, ge=0)
+    specs_score: Optional[float] = Field(None, ge=0.0, le=100.0)
     image_url: Optional[str] = None
     description: Optional[str] = None
+    source: Optional[str] = None
+    source_url: Optional[str] = None
+    currency: Optional[str] = None
 
 
 class EvaluateRequest(BaseModel):
-    weights: WeightVector
+    weights: Optional[WeightVector] = None
     products: List[ProductInput]
+    context_profile: Literal["economia", "equilibrado", "valoraciones", "personalizado"] = "personalizado"
+    source_run_id: Optional[str] = None
 
 
 class BreakdownScore(BaseModel):
@@ -66,11 +76,14 @@ class RankedProduct(BaseModel):
     category: str
     brand: str
     price: float
-    quality_rating: float
-    stock: int
-    specs_score: float
+    quality_rating: Optional[float] = None
+    stock: Optional[int] = None
+    specs_score: Optional[float] = None
     image_url: Optional[str] = None
     description: Optional[str] = None
+    source: Optional[str] = None
+    source_url: Optional[str] = None
+    currency: Optional[str] = None
     rank_position: int
     final_score: float
     level: str
@@ -85,6 +98,11 @@ class EvaluateResponse(BaseModel):
     global_explanation: str
     warnings: List[str]
     ranking: List[RankedProduct]
+    context_profile: str
+    active_criteria: List[str]
+    ignored_criteria: List[str]
+    effective_weights: Dict[str, float]
+    source_run_id: Optional[str] = None
 
 
 @app.get("/health")
@@ -98,30 +116,88 @@ def health_check():
     }
 
 
+@app.post("/sources/demo-products/search", response_model=SourceSearchResponse)
+async def search_demo_product_source(payload: SourceSearchRequest):
+    """Consulta una página acotada de la API de productos de demostración."""
+    return await search_demo_products(payload)
+
+
 @app.post("/evaluate", response_model=EvaluateResponse)
 def evaluate_ranking(payload: EvaluateRequest):
     """Calcula el ranking multicriterio MAUT con normalización Min-Max."""
     if not payload.products:
         raise HTTPException(status_code=400, detail="La lista de productos no puede estar vacía.")
 
-    weights = payload.weights
-    w_sum = weights.weight_price + weights.weight_quality + weights.weight_stock + weights.weight_specs
-    if w_sum <= 0:
-        raise HTTPException(status_code=400, detail="La suma de pesos debe ser mayor que 0.")
+    profiles = {
+        "economia": WeightVector(
+            weight_price=0.70,
+            weight_quality=0.10,
+            weight_stock=0.15,
+            weight_specs=0.05,
+        ),
+        "equilibrado": WeightVector(
+            weight_price=0.40,
+            weight_quality=0.30,
+            weight_stock=0.10,
+            weight_specs=0.20,
+        ),
+        "valoraciones": WeightVector(
+            weight_price=0.15,
+            weight_quality=0.65,
+            weight_stock=0.10,
+            weight_specs=0.10,
+        ),
+    }
+    weights = payload.weights or WeightVector()
+    if payload.context_profile != "personalizado":
+        weights = profiles[payload.context_profile]
+
+    criteria_fields = {
+        "price": [product.price for product in payload.products],
+        "quality": [product.quality_rating for product in payload.products],
+        "stock": [product.stock for product in payload.products],
+        "specs": [product.specs_score for product in payload.products],
+    }
+    active_criteria = [
+        criterion
+        for criterion, values in criteria_fields.items()
+        if all(value is not None for value in values)
+    ]
+    ignored_criteria = [
+        criterion for criterion in criteria_fields if criterion not in active_criteria
+    ]
+
+    criterion_weights = {
+        "price": weights.weight_price,
+        "quality": weights.weight_quality,
+        "stock": weights.weight_stock,
+        "specs": weights.weight_specs,
+    }
+    active_weight_sum = sum(criterion_weights[key] for key in active_criteria)
+    if active_weight_sum <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="El perfil no asigna peso positivo a ningún criterio disponible.",
+        )
 
     # Normalizar pesos para que sumen exactamente 1.0
-    w_p = weights.weight_price / w_sum
-    w_q = weights.weight_quality / w_sum
-    w_s = weights.weight_stock / w_sum
-    w_e = weights.weight_specs / w_sum
+    effective_weights = {
+        key: (criterion_weights[key] / active_weight_sum if key in active_criteria else 0.0)
+        for key in criterion_weights
+    }
+    w_p = effective_weights["price"]
+    w_q = effective_weights["quality"]
+    w_s = effective_weights["stock"]
+    w_e = effective_weights["specs"]
 
     # Rangos para normalización Min-Max
     prices = [p.price for p in payload.products]
     min_price, max_price = min(prices), max(prices)
     price_range = max_price - min_price
 
-    stocks = [p.stock for p in payload.products]
-    min_stock, max_stock = min(stocks), max(stocks)
+    stocks = [p.stock for p in payload.products if p.stock is not None]
+    min_stock = min(stocks) if stocks else 0
+    max_stock = max(stocks) if stocks else 0
     stock_range = max_stock - min_stock
 
     ranked_items = []
@@ -135,18 +211,26 @@ def evaluate_ranking(payload: EvaluateRequest):
             norm_price = (max_price - p.price) / price_range
 
         # 2. Normalización de Calidad (Escala fija 1 a 5)
-        norm_quality = (p.quality_rating - 1.0) / 4.0
-        norm_quality = max(0.0, min(1.0, norm_quality))
+        norm_quality = (
+            max(0.0, min(1.0, (p.quality_rating - 1.0) / 4.0))
+            if p.quality_rating is not None and "quality" in active_criteria
+            else 0.0
+        )
 
         # 3. Normalización de Stock (Mayor disponibilidad = mayor utilidad)
-        if stock_range == 0:
+        if p.stock is None or "stock" not in active_criteria:
+            norm_stock = 0.0
+        elif stock_range == 0:
             norm_stock = 1.0 if p.stock > 0 else 0.0
         else:
             norm_stock = (p.stock - min_stock) / stock_range
 
         # 4. Normalización de Especificaciones (Escala fija 0 a 100)
-        norm_specs = p.specs_score / 100.0
-        norm_specs = max(0.0, min(1.0, norm_specs))
+        norm_specs = (
+            max(0.0, min(1.0, p.specs_score / 100.0))
+            if p.specs_score is not None and "specs" in active_criteria
+            else 0.0
+        )
 
         # Contribución ponderada
         c_p = norm_price * w_p
@@ -169,13 +253,13 @@ def evaluate_ranking(payload: EvaluateRequest):
         reasons = []
         if norm_price >= 0.75:
             reasons.append("Destacado ahorro económico frente al grupo comparado.")
-        if norm_quality >= 0.8:
+        if "quality" in active_criteria and norm_quality >= 0.8:
             reasons.append(f"Alta satisfacción y valoración de usuarios ({p.quality_rating}/5.0).")
-        if p.stock <= 3:
+        if "stock" in active_criteria and p.stock is not None and p.stock <= 3:
             reasons.append(f"Stock reducido ({p.stock} unidades).")
             if p.stock == 0:
                 warnings.append(f"El producto '{p.name}' no tiene stock disponible.")
-        if norm_specs >= 0.85:
+        if "specs" in active_criteria and norm_specs >= 0.85:
             reasons.append(f"Rendimiento técnico superior ({p.specs_score}/100).")
 
         breakdown = BreakdownScore(
@@ -215,6 +299,9 @@ def evaluate_ranking(payload: EvaluateRequest):
                 specs_score=p.specs_score,
                 image_url=p.image_url,
                 description=p.description,
+                source=p.source,
+                source_url=p.source_url,
+                currency=p.currency,
                 rank_position=idx,
                 final_score=item["final_score"],
                 level=item["level"],
@@ -238,17 +325,54 @@ def evaluate_ranking(payload: EvaluateRequest):
 
     factor_text = ", ".join(factors) if factors else "un equilibrio consistente en todos los criterios"
 
+    profile_labels = {
+        "economia": "ahorro",
+        "equilibrado": "equilibrado",
+        "valoraciones": "valoraciones",
+        "personalizado": "personalizado",
+    }
+    criterion_labels = {
+        "price": "precio",
+        "quality": "valoración",
+        "stock": "disponibilidad",
+        "specs": "especificaciones",
+    }
+    active_text = ", ".join(criterion_labels[key] for key in active_criteria)
     explanation = (
-        f"El producto '{top_item.name}' ({top_item.brand}) lidera la comparativa "
-        f"con {top_item.final_score}/100 puntos. Su primera posición se explica "
-        f"principalmente por {factor_text}, de acuerdo con tus prioridades."
+        f"El producto '{top_item.name}' ({top_item.brand}) lidera la muestra "
+        f"con {top_item.final_score}/100 puntos usando el perfil de "
+        f"{profile_labels[payload.context_profile]}. Se consideran: {active_text}. "
+        f"La posición se explica principalmente por {factor_text}."
     )
+
+    if ignored_criteria:
+        ignored_text = ", ".join(criterion_labels[key] for key in ignored_criteria)
+        warnings.append(
+            "Criterios omitidos por falta de datos en toda la muestra: "
+            + ignored_text
+            + "."
+        )
+    if payload.source_run_id:
+        warnings.append(
+            "La fuente utilizada contiene datos sintéticos de demostración; "
+            "no representan precios ni disponibilidad reales."
+        )
 
     return EvaluateResponse(
         status="success",
         total_products_evaluated=len(final_ranking),
         top_recommended_product_id=top_item.id,
         global_explanation=explanation,
-        warnings=list(set(warnings)),
+        warnings=list(dict.fromkeys(warnings)),
         ranking=final_ranking,
+        context_profile=payload.context_profile,
+        active_criteria=active_criteria,
+        ignored_criteria=ignored_criteria,
+        effective_weights={
+            "weight_price": effective_weights["price"],
+            "weight_quality": effective_weights["quality"],
+            "weight_stock": effective_weights["stock"],
+            "weight_specs": effective_weights["specs"],
+        },
+        source_run_id=payload.source_run_id,
     )

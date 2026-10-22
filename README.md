@@ -149,6 +149,8 @@ curl localhost:3000/api/products
 
 El stack levanta cuatro servicios: PostgreSQL, FastAPI, NestJS y Nginx. La interfaz web queda en `http://localhost:4200` (o `FRONTEND_PORT`). Para detener: `docker compose down` (agregar `-v` solo si se quiere borrar la base).
 
+Si un puerto está ocupado, revisa el proceso con `ss -ltnp | grep :PUERTO` y deténlo, o cambia `POSTGRES_PORT`, `PYTHON_PORT`, `BACKEND_PORT` o `FRONTEND_PORT` en `.env` antes de levantar el stack.
+
 ### 4.2 Ejecución manual (desarrollo)
 
 **Base de datos:**

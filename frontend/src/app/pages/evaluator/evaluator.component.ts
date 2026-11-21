@@ -1,6 +1,16 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  IonBadge,
+  IonButton,
+  IonInput,
+  IonNote,
+  IonRange,
+  IonSelect,
+  IonSelectOption,
+  IonSpinner,
+} from '@ionic/angular';
 import { ApiService } from '../../services/api.service';
 import {
   WeightVector,
@@ -15,285 +25,318 @@ type ContextProfile = 'economia' | 'equilibrado' | 'valoraciones' | 'personaliza
 @Component({
   selector: 'app-evaluator',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    IonBadge,
+    IonButton,
+    IonInput,
+    IonNote,
+    IonRange,
+    IonSelect,
+    IonSelectOption,
+    IonSpinner,
+  ],
   template: `
     <div class="evaluator-container">
-      <h2>Evaluador Multicriterio</h2>
-      <p class="subtitle">Ajusta la importancia de cada criterio para obtener una recomendación:</p>
-
-      <div class="card source-card">
-        <h3>Comparar una muestra web</h3>
-        <p class="source-disclaimer">
-          DummyJSON es una API de datos de ejemplo para prototipos. Sus precios, valoraciones y
-          disponibilidad no representan el mercado real.
+      <form [formGroup]="evaluatorForm">
+        <h2>Evaluador Multicriterio</h2>
+        <p class="subtitle">
+          Ajusta la importancia de cada criterio para obtener una recomendación:
         </p>
-        <label for="source-query">Buscar en el catálogo de demostración</label>
-        <div class="source-controls">
-          <input
+
+        <div class="card source-card">
+          <h3>Comparar una muestra web</h3>
+          <p class="source-disclaimer">
+            DummyJSON es una API de datos de ejemplo para prototipos. Sus precios, valoraciones y
+            disponibilidad no representan el mercado real.
+          </p>
+          <ion-input
             id="source-query"
             type="search"
-            maxlength="80"
-            [(ngModel)]="sourceQuery"
+            fill="outline"
+            formControlName="sourceQuery"
+            label="Buscar en el catálogo de demostración"
+            labelPlacement="stacked"
             placeholder="Por ejemplo: laptop"
             [disabled]="sourceLoading"
-          />
-          <button
-            class="btn"
-            (click)="searchSource()"
-            [disabled]="sourceLoading || loading || sourceQuery.trim().length < 2"
-          >
-            {{ sourceLoading ? 'Consultando...' : 'Consultar fuente' }}
-          </button>
-          <button class="btn btn-secondary" (click)="useLocalCatalog()" [disabled]="sourceLoading">
-            Usar catálogo local
-          </button>
-        </div>
-        @if (sourceMessage) {
-          <p class="source-message" aria-live="polite">{{ sourceMessage }}</p>
-        }
-        @if (activeSourceRun) {
-          <div class="source-metadata" aria-live="polite">
-            <b>Fuente activa:</b> DummyJSON · corrida {{ activeSourceRun.run_id }}<br />
-            <b>Consulta:</b> {{ activeSourceRun.query }} · <b>Obtenida:</b>
-            {{ activeSourceRun.retrieved_at | date: 'medium' }}<br />
-            <b>Registros:</b> {{ activeSourceRun.metrics.accepted }} válidos de
-            {{ activeSourceRun.metrics.received }} ·
-            {{ activeSourceRun.metrics.duplicates }} duplicados ·
-            {{ activeSourceRun.metrics.rejected }} rechazados
-            @if (activeSourceRun.duration_ms != null) {
-              <br /><b>Duración de la consulta:</b> {{ activeSourceRun.duration_ms }} ms
-            }
-            <p>
-              La API no declara moneda ni ofrece ofertas reales; el precio se conserva como valor de
-              muestra.
-            </p>
-          </div>
-        }
-      </div>
-
-      <!-- Panel de Ponderaciones -->
-      <div class="card">
-        <h3>Criterios de Ponderación</h3>
-        <label for="context-profile">Prioridad de esta comparación</label>
-        <select
-          id="context-profile"
-          [ngModel]="contextProfile"
-          (ngModelChange)="onContextChange($event)"
-          [disabled]="loading || sourceLoading"
-        >
-          <option value="economia">Ahorro</option>
-          <option value="equilibrado">Equilibrio</option>
-          <option value="valoraciones">Valoraciones</option>
-          <option value="personalizado">Personalizado</option>
-        </select>
-        <p class="profile-description">{{ profileDescription }}</p>
-        <div class="sliders-list">
-          <div class="slider-item">
-            <div class="slider-header">
-              <span id="price-weight-label">Precio (Ahorro):</span>
-              <b>{{ getPercent(weights.weight_price) }}%</b>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="5"
-              [ngModel]="weights.weight_price * 100"
-              (ngModelChange)="onSliderPreview('weight_price', $event)"
-              (change)="evaluate()"
-              [attr.aria-labelledby]="'price-weight-label'"
-              [attr.aria-valuetext]="getPercent(weights.weight_price) + '%'"
-              [disabled]="loading || sourceLoading"
-            />
-          </div>
-
-          <div class="slider-item">
-            <div class="slider-header">
-              <span id="quality-weight-label">Calidad (Opiniones):</span>
-              <b>{{ getPercent(weights.weight_quality) }}%</b>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="5"
-              [ngModel]="weights.weight_quality * 100"
-              (ngModelChange)="onSliderPreview('weight_quality', $event)"
-              (change)="evaluate()"
-              [attr.aria-labelledby]="'quality-weight-label'"
-              [attr.aria-valuetext]="getPercent(weights.weight_quality) + '%'"
-              [disabled]="loading || sourceLoading"
-            />
-          </div>
-
-          <div class="slider-item">
-            <div class="slider-header">
-              <span id="stock-weight-label">Disponibilidad de Stock:</span>
-              <b>{{ getPercent(weights.weight_stock) }}%</b>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="5"
-              [ngModel]="weights.weight_stock * 100"
-              (ngModelChange)="onSliderPreview('weight_stock', $event)"
-              (change)="evaluate()"
-              [attr.aria-labelledby]="'stock-weight-label'"
-              [attr.aria-valuetext]="getPercent(weights.weight_stock) + '%'"
-              [disabled]="loading || sourceLoading"
-            />
-          </div>
-
-          <div class="slider-item">
-            <div class="slider-header">
-              <span id="specs-weight-label">Especificaciones Técnicas:</span>
-              <b>{{ getPercent(weights.weight_specs) }}%</b>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              step="5"
-              [ngModel]="weights.weight_specs * 100"
-              (ngModelChange)="onSliderPreview('weight_specs', $event)"
-              (change)="evaluate()"
-              [attr.aria-labelledby]="'specs-weight-label'"
-              [attr.aria-valuetext]="getPercent(weights.weight_specs) + '%'"
-              [disabled]="loading || sourceLoading"
-            />
-          </div>
-        </div>
-
-        <div class="btn-container">
-          <button
-            class="btn"
-            (click)="evaluate()"
-            [disabled]="
-              loading || (activeSourceRun !== null && activeSourceRun.metrics.accepted < 2)
-            "
-          >
-            {{ loading ? 'Calculando...' : 'Calcular ranking' }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Resultado Destacado -->
-      @if (evaluation && topProduct) {
-        <div class="card winner-card">
-          <div class="winner-title-row">
-            <h4>
-              {{ activeSourceRun ? 'Primera opción de la muestra:' : 'Producto recomendado:' }}
-              {{ topProduct.name }}
-            </h4>
-            <span class="badge" [ngClass]="getLevelClass(topProduct.level)">{{
-              topProduct.level
-            }}</span>
-          </div>
-          <p class="winner-details">
-            <b>Puntaje final:</b> {{ topProduct.final_score }} / 100 |
-            <b>Precio{{ activeSourceRun ? ' de muestra' : '' }}:</b>
-            {{ formatProductPrice(topProduct) }} | <b>Marca:</b> {{ topProduct.brand }}
-          </p>
-          <div class="explanation-box"><b>Explicación:</b> {{ evaluation.global_explanation }}</div>
-
-          @if (evaluation.warnings.length > 0) {
-            <div class="warnings-box">
-              @for (w of evaluation.warnings; track w) {
-                <p>Aviso: {{ w }}</p>
+          ></ion-input>
+          <div class="source-controls">
+            <ion-button
+              type="button"
+              size="small"
+              (click)="searchSource()"
+              [disabled]="sourceLoading || loading || sourceQueryControl.value.trim().length < 2"
+            >
+              @if (sourceLoading) {
+                <ion-spinner name="crescent" slot="start"></ion-spinner>
               }
-            </div>
+              {{ sourceLoading ? 'Consultando...' : 'Consultar fuente' }}
+            </ion-button>
+            <ion-button
+              type="button"
+              size="small"
+              color="medium"
+              fill="outline"
+              (click)="useLocalCatalog()"
+              [disabled]="sourceLoading"
+            >
+              Usar catálogo local
+            </ion-button>
+          </div>
+          @if (sourceMessage) {
+            <ion-note color="warning" class="source-message" aria-live="polite">
+              {{ sourceMessage }}
+            </ion-note>
           }
-          @if (evaluation.active_criteria?.length) {
-            <p class="criteria-note">
-              Criterios usados: {{ formatCriteria(evaluation.active_criteria) }}.
-              @if (evaluation.ignored_criteria?.length) {
-                Se omitieron: {{ formatCriteria(evaluation.ignored_criteria) }} por falta de datos
-                comparables.
+          @if (activeSourceRun) {
+            <div class="source-metadata" aria-live="polite">
+              <b>Fuente activa:</b> DummyJSON · corrida {{ activeSourceRun.run_id }}<br />
+              <b>Consulta:</b> {{ activeSourceRun.query }} · <b>Obtenida:</b>
+              {{ activeSourceRun.retrieved_at | date: 'medium' }}<br />
+              <b>Registros:</b> {{ activeSourceRun.metrics.accepted }} válidos de
+              {{ activeSourceRun.metrics.received }} ·
+              {{ activeSourceRun.metrics.duplicates }} duplicados ·
+              {{ activeSourceRun.metrics.rejected }} rechazados
+              @if (activeSourceRun.duration_ms != null) {
+                <br /><b>Duración de la consulta:</b> {{ activeSourceRun.duration_ms }} ms
               }
-            </p>
-          }
-          @if (evaluation.effective_weights) {
-            <p class="criteria-note">
-              Pesos efectivos: precio {{ getPercent(evaluation.effective_weights.weight_price) }}% ·
-              valoración {{ getPercent(evaluation.effective_weights.weight_quality) }}% ·
-              disponibilidad {{ getPercent(evaluation.effective_weights.weight_stock) }}% ·
-              especificaciones {{ getPercent(evaluation.effective_weights.weight_specs) }}%.
-            </p>
+              <p>
+                La API no declara moneda ni ofrece ofertas reales; el precio se conserva como valor
+                de muestra.
+              </p>
+            </div>
           }
         </div>
 
-        <!-- Tabla o Lista de Ranking -->
+        <!-- Panel de Ponderaciones -->
         <div class="card">
-          <h3>Ranking de Productos</h3>
-          <div class="table-wrapper">
-            <table class="ranking-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Producto</th>
-                  <th>Precio</th>
-                  <th>{{ activeSourceRun ? 'Valoración de muestra' : 'Calidad' }}</th>
-                  <th>{{ activeSourceRun ? 'Disponibilidad de muestra' : 'Stock' }}</th>
-                  <th>Specs</th>
-                  <th>Puntuación</th>
-                  <th>Nivel</th>
-                  @if (activeSourceRun) {
-                    <th>Procedencia</th>
-                  }
-                </tr>
-              </thead>
-              <tbody>
-                @for (item of evaluation.ranking; track item.id) {
-                  <tr [class.highlight-row]="item.rank_position === 1">
-                    <td>
-                      <b>{{ item.rank_position }}</b>
-                    </td>
-                    <td>{{ item.name }} ({{ item.brand }})</td>
-                    <td>{{ formatProductPrice(item) }}</td>
-                    <td>
-                      {{
-                        item.quality_rating != null ? item.quality_rating + ' / 5' : 'No disponible'
-                      }}
-                    </td>
-                    <td>{{ item.stock != null ? item.stock : 'No disponible' }}</td>
-                    <td>
-                      {{ item.specs_score != null ? item.specs_score + ' / 100' : 'No disponible' }}
-                    </td>
-                    <td>
-                      <b>{{ item.final_score }}</b>
-                    </td>
-                    <td>
-                      <span class="badge" [ngClass]="getLevelClass(item.level)">
-                        {{ item.level }}
-                      </span>
-                    </td>
+          <h3>Criterios de Ponderación</h3>
+          <ion-select
+            id="context-profile"
+            formControlName="contextProfile"
+            fill="outline"
+            label="Prioridad de esta comparación"
+            labelPlacement="stacked"
+            interface="popover"
+            (ionChange)="onContextChange($event.detail.value)"
+            [disabled]="loading || sourceLoading"
+          >
+            <ion-select-option value="economia">Ahorro</ion-select-option>
+            <ion-select-option value="equilibrado">Equilibrio</ion-select-option>
+            <ion-select-option value="valoraciones">Valoraciones</ion-select-option>
+            <ion-select-option value="personalizado">Personalizado</ion-select-option>
+          </ion-select>
+          <p class="profile-description">{{ profileDescription }}</p>
+          <div class="sliders-list">
+            <div class="slider-item">
+              <div class="slider-header">
+                <span id="price-weight-label">Precio (Ahorro):</span>
+                <b>{{ getPercent(weights.weight_price) }}%</b>
+              </div>
+              <ion-range
+                formControlName="weight_price"
+                min="0"
+                max="100"
+                step="5"
+                aria-label="Peso del precio"
+                [attr.aria-valuetext]="getPercent(weights.weight_price) + '%'"
+                [disabled]="loading || sourceLoading"
+                (ionChange)="onRangeChange('weight_price', $event.detail.value)"
+              ></ion-range>
+            </div>
+
+            <div class="slider-item">
+              <div class="slider-header">
+                <span id="quality-weight-label">Calidad (Opiniones):</span>
+                <b>{{ getPercent(weights.weight_quality) }}%</b>
+              </div>
+              <ion-range
+                formControlName="weight_quality"
+                min="0"
+                max="100"
+                step="5"
+                aria-label="Peso de la calidad"
+                [attr.aria-valuetext]="getPercent(weights.weight_quality) + '%'"
+                [disabled]="loading || sourceLoading"
+                (ionChange)="onRangeChange('weight_quality', $event.detail.value)"
+              ></ion-range>
+            </div>
+
+            <div class="slider-item">
+              <div class="slider-header">
+                <span id="stock-weight-label">Disponibilidad de Stock:</span>
+                <b>{{ getPercent(weights.weight_stock) }}%</b>
+              </div>
+              <ion-range
+                formControlName="weight_stock"
+                min="0"
+                max="100"
+                step="5"
+                aria-label="Peso de la disponibilidad"
+                [attr.aria-valuetext]="getPercent(weights.weight_stock) + '%'"
+                [disabled]="loading || sourceLoading"
+                (ionChange)="onRangeChange('weight_stock', $event.detail.value)"
+              ></ion-range>
+            </div>
+
+            <div class="slider-item">
+              <div class="slider-header">
+                <span id="specs-weight-label">Especificaciones Técnicas:</span>
+                <b>{{ getPercent(weights.weight_specs) }}%</b>
+              </div>
+              <ion-range
+                formControlName="weight_specs"
+                min="0"
+                max="100"
+                step="5"
+                aria-label="Peso de las especificaciones"
+                [attr.aria-valuetext]="getPercent(weights.weight_specs) + '%'"
+                [disabled]="loading || sourceLoading"
+                (ionChange)="onRangeChange('weight_specs', $event.detail.value)"
+              ></ion-range>
+            </div>
+          </div>
+
+          <div class="btn-container">
+            <ion-button
+              type="button"
+              (click)="evaluate()"
+              [disabled]="
+                loading || (activeSourceRun !== null && activeSourceRun.metrics.accepted < 2)
+              "
+            >
+              @if (loading) {
+                <ion-spinner name="crescent" slot="start"></ion-spinner>
+              }
+              {{ loading ? 'Calculando...' : 'Calcular ranking' }}
+            </ion-button>
+          </div>
+        </div>
+
+        <!-- Resultado Destacado -->
+        @if (evaluation && topProduct) {
+          <div class="card winner-card">
+            <div class="winner-title-row">
+              <h4>
+                {{ activeSourceRun ? 'Primera opción de la muestra:' : 'Producto recomendado:' }}
+                {{ topProduct.name }}
+              </h4>
+              <ion-badge [color]="getLevelColor(topProduct.level)">{{
+                topProduct.level
+              }}</ion-badge>
+            </div>
+            <p class="winner-details">
+              <b>Puntaje final:</b> {{ topProduct.final_score }} / 100 |
+              <b>Precio{{ activeSourceRun ? ' de muestra' : '' }}:</b>
+              {{ formatProductPrice(topProduct) }} | <b>Marca:</b> {{ topProduct.brand }}
+            </p>
+            <div class="explanation-box">
+              <b>Explicación:</b> {{ evaluation.global_explanation }}
+            </div>
+
+            @if (evaluation.warnings.length > 0) {
+              <div class="warnings-box">
+                @for (w of evaluation.warnings; track w) {
+                  <p>Aviso: {{ w }}</p>
+                }
+              </div>
+            }
+            @if (evaluation.active_criteria?.length) {
+              <p class="criteria-note">
+                Criterios usados: {{ formatCriteria(evaluation.active_criteria) }}.
+                @if (evaluation.ignored_criteria?.length) {
+                  Se omitieron: {{ formatCriteria(evaluation.ignored_criteria) }} por falta de datos
+                  comparables.
+                }
+              </p>
+            }
+            @if (evaluation.effective_weights) {
+              <p class="criteria-note">
+                Pesos efectivos: precio {{ getPercent(evaluation.effective_weights.weight_price) }}%
+                · valoración {{ getPercent(evaluation.effective_weights.weight_quality) }}% ·
+                disponibilidad {{ getPercent(evaluation.effective_weights.weight_stock) }}% ·
+                especificaciones {{ getPercent(evaluation.effective_weights.weight_specs) }}%.
+              </p>
+            }
+          </div>
+
+          <!-- Tabla o Lista de Ranking -->
+          <div class="card">
+            <h3>Ranking de Productos</h3>
+            <div class="table-wrapper">
+              <table class="ranking-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Producto</th>
+                    <th>Precio</th>
+                    <th>{{ activeSourceRun ? 'Valoración de muestra' : 'Calidad' }}</th>
+                    <th>{{ activeSourceRun ? 'Disponibilidad de muestra' : 'Stock' }}</th>
+                    <th>Specs</th>
+                    <th>Puntuación</th>
+                    <th>Nivel</th>
                     @if (activeSourceRun) {
-                      <td>
-                        @if (getSourceListing(item.id); as sourceRecord) {
-                          <a
-                            [href]="sourceRecord.source_url"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            DummyJSON · {{ sourceRecord.external_id }}
-                          </a>
-                          <details>
-                            <summary>Hash SHA-256</summary>
-                            <code>{{ sourceRecord.content_hash }}</code>
-                          </details>
-                        } @else {
-                          <span>Sin enlace</span>
-                        }
-                      </td>
+                      <th>Procedencia</th>
                     }
                   </tr>
-                }
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  @for (item of evaluation.ranking; track item.id) {
+                    <tr [class.highlight-row]="item.rank_position === 1">
+                      <td>
+                        <b>{{ item.rank_position }}</b>
+                      </td>
+                      <td>{{ item.name }} ({{ item.brand }})</td>
+                      <td>{{ formatProductPrice(item) }}</td>
+                      <td>
+                        {{
+                          item.quality_rating != null
+                            ? item.quality_rating + ' / 5'
+                            : 'No disponible'
+                        }}
+                      </td>
+                      <td>{{ item.stock != null ? item.stock : 'No disponible' }}</td>
+                      <td>
+                        {{
+                          item.specs_score != null ? item.specs_score + ' / 100' : 'No disponible'
+                        }}
+                      </td>
+                      <td>
+                        <b>{{ item.final_score }}</b>
+                      </td>
+                      <td>
+                        <ion-badge [color]="getLevelColor(item.level)">
+                          {{ item.level }}
+                        </ion-badge>
+                      </td>
+                      @if (activeSourceRun) {
+                        <td>
+                          @if (getSourceListing(item.id); as sourceRecord) {
+                            <a
+                              [href]="sourceRecord.source_url"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              DummyJSON · {{ sourceRecord.external_id }}
+                            </a>
+                            <details>
+                              <summary>Hash SHA-256</summary>
+                              <code>{{ sourceRecord.content_hash }}</code>
+                            </details>
+                          } @else {
+                            <span>Sin enlace</span>
+                          }
+                        </td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      }
+        }
+      </form>
     </div>
   `,
   styles: [
@@ -302,6 +345,7 @@ type ContextProfile = 'economia' | 'equilibrado' | 'valoraciones' | 'personaliza
         display: flex;
         flex-direction: column;
         gap: 1rem;
+        min-width: 0;
       }
 
       .subtitle {
@@ -348,8 +392,22 @@ type ContextProfile = 'economia' | 'equilibrado' | 'valoraciones' | 'personaliza
       }
 
       .source-message {
+        display: block;
         margin-top: 0.5rem;
         color: #92400e;
+      }
+
+      ion-input,
+      ion-select {
+        margin: 0.35rem 0;
+        --color: #1e293b;
+        --placeholder-color: #64748b;
+        --label-color: #334155;
+      }
+
+      ion-range {
+        padding: 0;
+        min-width: 0;
       }
 
       .source-metadata {
@@ -414,7 +472,20 @@ type ContextProfile = 'economia' | 'equilibrado' | 'valoraciones' | 'personaliza
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
         margin-bottom: 0.5rem;
+      }
+
+      .winner-title-row h4 {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+
+      .winner-title-row ion-badge {
+        max-width: 100%;
+        white-space: normal;
+        text-align: right;
       }
 
       .winner-details {
@@ -505,18 +576,39 @@ export class EvaluatorComponent implements OnInit {
   evaluation: EvaluationResponse | null = null;
   loading: boolean = false;
   sourceLoading = false;
-  sourceQuery = 'laptop';
   sourceMessage = '';
   contextProfile: ContextProfile = 'equilibrado';
   activeSourceRun: SourceSearchResponse | null = null;
+
+  readonly evaluatorForm: FormGroup;
 
   get profileDescription(): string {
     return this.profiles[this.contextProfile].description;
   }
 
-  constructor(private readonly apiService: ApiService) {}
+  get sourceQueryControl() {
+    return this.evaluatorForm.controls['sourceQuery'];
+  }
+
+  constructor(
+    private readonly apiService: ApiService,
+    private readonly formBuilder: FormBuilder,
+  ) {
+    this.evaluatorForm = this.formBuilder.group({
+      sourceQuery: [
+        'laptop',
+        [Validators.required, Validators.minLength(2), Validators.maxLength(80)],
+      ],
+      contextProfile: ['equilibrado', Validators.required],
+      weight_price: [40, [Validators.min(0), Validators.max(100)]],
+      weight_quality: [30, [Validators.min(0), Validators.max(100)]],
+      weight_stock: [10, [Validators.min(0), Validators.max(100)]],
+      weight_specs: [20, [Validators.min(0), Validators.max(100)]],
+    });
+  }
 
   ngOnInit(): void {
+    this.syncWeightControls();
     this.evaluate();
   }
 
@@ -524,20 +616,46 @@ export class EvaluatorComponent implements OnInit {
     return this.evaluation?.ranking?.[0] ?? null;
   }
 
-  onSliderPreview(key: keyof WeightVector, value: number): void {
+  onRangeChange(key: keyof WeightVector, value: number | { lower: number; upper: number }): void {
+    const numericValue = typeof value === 'number' ? value : value.lower;
+    this.onSliderPreview(key, numericValue);
+    this.evaluate();
+  }
+
+  onSliderPreview(key: keyof WeightVector, value?: number): void {
+    const control = this.evaluatorForm.controls[key];
+    const percentage = typeof value === 'number' ? Math.round(value) : Number(control.value ?? 0);
+
+    control.setValue(percentage, { emitEvent: false });
     this.contextProfile = 'personalizado';
-    this.weights[key] = Math.round(value) / 100;
+    this.evaluatorForm.controls['contextProfile'].setValue('personalizado', {
+      emitEvent: false,
+    });
+    this.weights = { ...this.weights, [key]: percentage / 100 };
   }
 
   onContextChange(value: string): void {
     if (!Object.prototype.hasOwnProperty.call(this.profiles, value)) return;
     this.contextProfile = value as ContextProfile;
     this.weights = { ...this.profiles[this.contextProfile].weights };
+    this.syncWeightControls();
     this.evaluate();
   }
 
+  private syncWeightControls(): void {
+    this.evaluatorForm.patchValue(
+      {
+        weight_price: Math.round(this.weights.weight_price * 100),
+        weight_quality: Math.round(this.weights.weight_quality * 100),
+        weight_stock: Math.round(this.weights.weight_stock * 100),
+        weight_specs: Math.round(this.weights.weight_specs * 100),
+      },
+      { emitEvent: false },
+    );
+  }
+
   searchSource(): void {
-    const query = this.sourceQuery.trim();
+    const query = String(this.evaluatorForm.controls['sourceQuery'].value ?? '').trim();
     if (query.length < 2 || this.sourceLoading) return;
 
     this.sourceLoading = true;
@@ -620,16 +738,16 @@ export class EvaluatorComponent implements OnInit {
     return this.activeSourceRun?.products.find((product) => product.external_id === externalId);
   }
 
-  getLevelClass(level: string): string {
+  getLevelColor(level: string): string {
     switch (level) {
       case 'Altamente Recomendado':
-        return 'badge-green';
+        return 'success';
       case 'Recomendado':
-        return 'badge-blue';
+        return 'primary';
       case 'Aceptable':
-        return 'badge-yellow';
+        return 'warning';
       default:
-        return 'badge-gray';
+        return 'medium';
     }
   }
 }

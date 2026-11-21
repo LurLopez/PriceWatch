@@ -1,16 +1,18 @@
-<app-navbar></app-navbar>
-@if (!connectivity.online()) {
-  <div class="offline-banner" role="status" aria-live="polite">
-    Sin conexión. El catálogo puede consultarse desde la caché; el evaluador y el historial
-    requieren conexión con el servidor.
-  </div>
-}
-<main class="container">
-  <router-outlet></router-outlet>
-</main>
-<footer class="app-footer">
-  <div class="footer-content">
-    <span>PriceWatch © 2026 — Comparador Multicriterio Inteligente</span>
-    <small>Ingeniería Web Avanzada · PUCV</small>
-  </div>
-</footer>
+<ion-app>
+  <app-navbar></app-navbar>
+  @if (!connectivity.online()) {
+    <div class="offline-banner" role="status" aria-live="polite">
+      Sin conexión. El catálogo puede consultarse desde la caché; el evaluador y el historial
+      requieren conexión con el servidor.
+    </div>
+  }
+  <main class="container">
+    <router-outlet></router-outlet>
+  </main>
+  <footer class="app-footer">
+    <div class="footer-content">
+      <span>PriceWatch © 2026 — Comparador Multicriterio Inteligente</span>
+      <small>Ingeniería Web Avanzada · PUCV</small>
+    </div>
+  </footer>
+</ion-app>

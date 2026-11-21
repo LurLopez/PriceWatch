@@ -1,3 +1,10 @@
+@import '@ionic/angular/css/core.css';
+@import '@ionic/angular/css/normalize.css';
+@import '@ionic/angular/css/structure.css';
+@import '@ionic/angular/css/padding.css';
+@import '@ionic/angular/css/flex-utils.css';
+@import '@ionic/angular/css/display.css';
+
 /* Variables compartidas */
 :root {
   --pw-primary: #2563eb;
@@ -24,13 +31,38 @@ body {
   background-color: #f8fafc;
   color: #1e293b;
   line-height: 1.5;
+  position: static;
+  overflow: auto;
+}
+
+html,
+body {
+  height: 100%;
 }
 
 /* Contenedor principal */
 .container {
   max-width: 900px;
+  width: 100%;
   margin: 0 auto;
   padding: 1.5rem 1rem;
+}
+
+ion-app {
+  width: 100%;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: #0f172a;
+}
+
+ion-card {
+  color: #1e293b;
 }
 
 /* Tarjeta básica */

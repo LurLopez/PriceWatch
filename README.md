@@ -2,8 +2,8 @@
 
 > **Asignatura:** OII436-1 Ingeniería Web Avanzada — PUCV
 > **Autor:** Lur Lopez Fraile (`lur.lopez.f@mail.pucv.cl`)
-> **Entrega actual:** EF — solución desplegable con autenticación, PWA y Android
-> **Estado:** autenticación JWT/roles, PWA instalable y APK Android generados; la fuente aporta datos sintéticos de demostración
+> **Entrega actual:** EF — solución desplegable con autenticación, Ionic, PWA y Android
+> **Estado:** autenticación JWT/roles, formularios reactivos, componentes Ionic, PWA instalable y APK Android verificados; la fuente aporta datos sintéticos de demostración
 
 PriceWatch compara productos de comercio electrónico con **múltiples criterios ponderables por el usuario** (precio, calidad, stock y especificaciones) y entrega un ranking **explicable**: no solo dice qué producto conviene, sino por qué, mostrando la normalización y el aporte de cada criterio al puntaje final.
 
@@ -66,6 +66,7 @@ Los comparadores de precios actuales ordenan el catálogo por un **criterio úni
 | F8 | Degradación elegante | Si FastAPI falla, NestJS responde `success_fallback` con un ranking de respaldo, nunca un error 500 |
 | F9 | Autenticación y autorización | JWT con expiración, contraseñas con `bcrypt`, roles `ADMIN`/`USER`, guards de ruta y protección de endpoints |
 | F10 | PWA y Android | Manifest, service worker, iconos, instalación, caché del catálogo y aviso offline; APK Android con Capacitor |
+| F11 | Ionic y formularios reactivos | Componentes `ion-*` en navegación, tarjetas, entradas, selects, sliders, badges y spinners; login, catálogo y evaluador con `ReactiveFormsModule` y validadores |
 
 **Niveles del ranking:** `>= 80` Altamente Recomendado · `>= 60` Recomendado · `>= 40` Aceptable · `< 40` No Favorable.
 
@@ -283,7 +284,7 @@ Las credenciales se configuran en `.env` mediante `ADMIN_EMAIL`/`ADMIN_PASSWORD`
 | frontend | `npm test -- --watch=false` · `npm run build` | Login, AuthService, guard, interceptor, consulta acotada, envío del contexto y errores sin sustituir la muestra |
 | infra | `terraform fmt -check` · `terraform validate` | Sintaxis y validez del manifiesto staging |
 
-Verificación local: **25 pruebas Jest**, **5 pruebas e2e**, **18 pruebas Vitest**, **15 pruebas pytest** y `flake8` sin errores. Las pruebas no realizan llamadas externas.
+Verificación local: **25 pruebas Jest**, **5 pruebas e2e**, **27 pruebas Vitest**, **15 pruebas pytest** y `flake8` sin errores. Las pruebas no realizan llamadas externas.
 
 **Verificación de autenticación (21/11/2026):** con PostgreSQL temporal se aplicaron las dos migraciones y el seed. Se comprobó login `ADMIN` (200), `/api/auth/me` (200), historial sin token (401), usuario `USER` intentando consultar fuentes (403), evaluación autenticada (201) e historial filtrado por usuario. También se simuló una base creada con `db push`: el baseline marcó la migración inicial como aplicada y conservó los datos existentes.
 
@@ -333,6 +334,18 @@ En GitHub Actions no se realizan consultas externas; las pruebas usan transporte
 
 El prototipo navegable es la aplicación Angular/Ionic incluida en `frontend/`. Se puede abrir con Docker Compose en `http://localhost:4200`, iniciar sesión con las credenciales configuradas en `.env` y recorrer las vistas de evaluador, catálogo e historial. El catálogo es público; evaluador e historial requieren sesión.
 
+**Interfaz y formularios**
+
+- Componentes Ionic reales: `ion-header`, `ion-toolbar`, `ion-card`, `ion-input`, `ion-select`, `ion-range`, `ion-button`, `ion-badge`, `ion-spinner` e `ion-note`.
+- Formularios reactivos con `ReactiveFormsModule` y validadores en login, catálogo y evaluador.
+- Estado reactivo con Signals para autenticación, conectividad y PWA; `zone.js` se mantiene para la detección de cambios de Angular.
+- Diseño responsive probado en escritorio y móvil; tabla de ranking con desplazamiento horizontal controlado.
+- Accesibilidad: etiquetas en controles, `aria-live` para mensajes, foco visible y contraste ajustado.
+
+![Login en navegador](docs/evidencias/pwa-login.png)
+
+![Evaluador en navegador](docs/evidencias/pwa-evaluator.png)
+
 ### PWA
 
 - Manifest `public/manifest.webmanifest` con iconos de 72 a 512 px y variante maskable.
@@ -369,7 +382,7 @@ cd android
 
 Probado en emulador Android: login contra el backend local y navegación al evaluador. La versión de producción debe apuntar a la URL HTTPS de staging.
 
-![Login en Android](docs/evidencias/android-login.png)
+![Evaluador en Android](docs/evidencias/android-ionic-evaluator.png)
 
 No se mantiene un enlace Figma separado para esta entrega.
 

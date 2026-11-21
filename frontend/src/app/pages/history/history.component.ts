@@ -1,50 +1,66 @@
-import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { IonBadge, IonCard, IonCardContent, IonNote, IonSpinner } from '@ionic/angular';
 import { ApiService } from '../../services/api.service';
 import { EvaluationHistoryItem } from '../../models/product.model';
 
 @Component({
   selector: 'app-history',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, IonBadge, IonCard, IonCardContent, IonNote, IonSpinner],
   template: `
     <div class="history-container">
       <h2>Historial de Evaluaciones</h2>
-      <p class="subtitle">Registro de las últimas simulaciones realizadas:</p>
+      <p class="subtitle">Registro de las últimas evaluaciones realizadas:</p>
+
+      @if (loading) {
+        <div class="loading-row">
+          <ion-spinner name="crescent"></ion-spinner>
+          <span>Cargando historial…</span>
+        </div>
+      }
+
+      @if (errorMessage) {
+        <ion-note color="danger" role="alert">{{ errorMessage }}</ion-note>
+      }
 
       <div class="history-list">
         @for (item of history; track item.id) {
-          <div class="card history-card">
-            <div class="card-header">
-              <span class="date">{{ formatDate(item.evaluated_at) }}</span>
-              <span class="score"
-                >Puntaje: <b>{{ item.top_product_score }}</b> / 100</span
-              >
-            </div>
+          <ion-card class="history-card">
+            <ion-card-content>
+              <div class="card-header">
+                <span class="date">{{ formatDate(item.evaluated_at) }}</span>
+                <ion-badge color="primary">Puntaje: {{ item.top_product_score }} / 100</ion-badge>
+              </div>
 
-            <h4>Ganador: {{ item.top_product_name }}</h4>
-            <p class="explanation">{{ item.explanation }}</p>
-            @if (item.context_profile) {
-              <p class="context-info">
-                Perfil: {{ formatProfile(item.context_profile) }}
-                @if (item.source_run_id) {
-                  · Corrida de fuente: {{ item.source_run_id }}
-                }
-              </p>
-            }
+              <h4>Ganador: {{ item.top_product_name }}</h4>
+              <p class="explanation">{{ item.explanation }}</p>
+              @if (item.context_profile) {
+                <p class="context-info">
+                  Perfil: {{ formatProfile(item.context_profile) }}
+                  @if (item.source_run_id) {
+                    · Corrida de fuente: {{ item.source_run_id }}
+                  }
+                </p>
+              }
 
-            <div class="weights-info">
-              <span><b>Pesos:</b></span>
-              <span>Precio: {{ getPercent(item.weight_price) }}%</span>
-              <span>Calidad: {{ getPercent(item.weight_quality) }}%</span>
-              <span>Stock: {{ getPercent(item.weight_stock) }}%</span>
-              <span>Specs: {{ getPercent(item.weight_specs) }}%</span>
-            </div>
-          </div>
+              <div class="weights-info">
+                <span><b>Pesos:</b></span>
+                <span>Precio: {{ getPercent(item.weight_price) }}%</span>
+                <span>Calidad: {{ getPercent(item.weight_quality) }}%</span>
+                <span>Stock: {{ getPercent(item.weight_stock) }}%</span>
+                <span>Specs: {{ getPercent(item.weight_specs) }}%</span>
+              </div>
+            </ion-card-content>
+          </ion-card>
         } @empty {
-          <div class="card">
-            <p>No hay evaluaciones en el historial todavía.</p>
-          </div>
+          @if (!loading) {
+            <ion-card>
+              <ion-card-content>
+                <ion-note>No hay evaluaciones en el historial todavía.</ion-note>
+              </ion-card-content>
+            </ion-card>
+          }
         }
       </div>
     </div>
@@ -61,28 +77,35 @@ import { EvaluationHistoryItem } from '../../models/product.model';
         color: #64748b;
       }
 
+      .loading-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #64748b;
+        font-size: 0.9rem;
+      }
+
       .history-list {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 0.5rem;
       }
 
       .history-card {
-        margin-bottom: 0;
+        margin: 0;
       }
 
       .card-header {
         display: flex;
         justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
         font-size: 0.85rem;
         color: #64748b;
         border-bottom: 1px solid #f1f5f9;
-        padding-bottom: 0.4rem;
+        padding-bottom: 0.5rem;
         margin-bottom: 0.5rem;
-      }
-
-      .score b {
-        color: #2563eb;
+        flex-wrap: wrap;
       }
 
       .history-card h4 {
@@ -111,18 +134,29 @@ import { EvaluationHistoryItem } from '../../models/product.model';
         padding: 0.4rem 0.6rem;
         border-radius: 4px;
         flex-wrap: wrap;
+        margin-top: 0.5rem;
       }
     `,
   ],
 })
 export class HistoryComponent implements OnInit {
   history: EvaluationHistoryItem[] = [];
+  loading = true;
+  errorMessage = '';
 
   constructor(private readonly apiService: ApiService) {}
 
   ngOnInit(): void {
-    this.apiService.getHistory().subscribe((data) => {
-      this.history = data;
+    this.apiService.getHistory().subscribe({
+      next: (data) => {
+        this.history = data;
+        this.loading = false;
+      },
+      error: () => {
+        this.loading = false;
+        this.errorMessage =
+          'No se pudo cargar el historial. Verifique la sesión y la conexión con la API.';
+      },
     });
   }
 

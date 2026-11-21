@@ -2,82 +2,98 @@ import { CommonModule } from '@angular/common';
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { IonButton, IonCard, IonCardContent, IonInput, IonNote, IonSpinner } from '@ionic/angular';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    IonButton,
+    IonCard,
+    IonCardContent,
+    IonInput,
+    IonNote,
+    IonSpinner,
+  ],
   template: `
     <section class="login-container">
-      <div class="card login-card">
-        <div class="login-heading">
-          <span class="eyebrow">Acceso seguro</span>
-          <h2>Iniciar sesión</h2>
-          <p>
-            Ingrese con su cuenta para evaluar productos y consultar su historial. La sesión usa un
-            token JWT con expiración.
-          </p>
-        </div>
+      <ion-card class="login-card">
+        <ion-card-content>
+          <div class="login-heading">
+            <span class="eyebrow">Acceso seguro</span>
+            <h2>Iniciar sesión</h2>
+            <p>
+              Ingrese con su cuenta para evaluar productos y consultar su historial. La sesión usa
+              un token JWT con expiración.
+            </p>
+          </div>
 
-        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
-          <div class="form-field">
-            <label for="email">Correo electrónico</label>
-            <input
+          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
+            <ion-input
               id="email"
               type="email"
+              fill="outline"
               formControlName="email"
+              label="Correo electrónico"
+              labelPlacement="stacked"
               autocomplete="username"
               inputmode="email"
               placeholder="usuario@pricewatch.local"
               [attr.aria-invalid]="emailInvalid"
               aria-describedby="email-error"
-            />
+            ></ion-input>
             @if (emailInvalid) {
-              <small id="email-error" class="field-error" role="alert">
+              <ion-note color="danger" id="email-error" class="field-error" role="alert">
                 Ingrese un correo electrónico válido.
-              </small>
+              </ion-note>
             }
-          </div>
 
-          <div class="form-field">
-            <label for="password">Contraseña</label>
-            <input
+            <ion-input
               id="password"
               type="password"
+              fill="outline"
               formControlName="password"
+              label="Contraseña"
+              labelPlacement="stacked"
               autocomplete="current-password"
               placeholder="••••••••"
               [attr.aria-invalid]="passwordInvalid"
               aria-describedby="password-error"
-            />
+            ></ion-input>
             @if (passwordInvalid) {
-              <small id="password-error" class="field-error" role="alert">
+              <ion-note color="danger" id="password-error" class="field-error" role="alert">
                 La contraseña es obligatoria.
-              </small>
+              </ion-note>
             }
-          </div>
 
-          @if (errorMessage) {
-            <p class="form-error" role="alert" aria-live="assertive">
-              {{ errorMessage }}
-            </p>
-          }
+            @if (errorMessage) {
+              <ion-note color="danger" class="form-error" role="alert" aria-live="assertive">
+                {{ errorMessage }}
+              </ion-note>
+            }
 
-          <button class="btn login-button" type="submit" [disabled]="loading">
-            {{ loading ? 'Ingresando…' : 'Ingresar' }}
-          </button>
-        </form>
+            <ion-button class="login-button" type="submit" expand="block" [disabled]="loading">
+              @if (loading) {
+                <ion-spinner name="crescent" slot="start"></ion-spinner>
+              }
+              {{ loading ? 'Ingresando…' : 'Ingresar' }}
+            </ion-button>
+          </form>
 
-        <p class="login-help">
-          Las credenciales de demostración se configuran en las variables
-          <code>ADMIN_*</code> y <code>DEMO_USER_*</code> del archivo <code>.env</code>.
-        </p>
+          <p class="login-help">
+            Las credenciales de demostración se configuran en las variables
+            <code>ADMIN_*</code> y <code>DEMO_USER_*</code> del archivo <code>.env</code>.
+          </p>
 
-        <p class="login-footer">
-          <a routerLink="/catalog">Continuar al catálogo público</a>
-        </p>
-      </div>
+          <p class="login-footer">
+            <a routerLink="/catalog">Continuar al catálogo público</a>
+          </p>
+        </ion-card-content>
+      </ion-card>
     </section>
   `,
   styles: [
@@ -85,13 +101,13 @@ import { AuthService } from '../../services/auth.service';
       .login-container {
         display: flex;
         justify-content: center;
-        padding: 2rem 0;
+        padding: 1.5rem 0;
       }
 
       .login-card {
         width: 100%;
-        max-width: 420px;
-        padding: 1.75rem;
+        max-width: 440px;
+        margin: 0;
       }
 
       .login-heading {
@@ -111,6 +127,7 @@ import { AuthService } from '../../services/auth.service';
       h2 {
         font-size: 1.45rem;
         margin-bottom: 0.4rem;
+        color: #0f172a;
       }
 
       .login-heading p,
@@ -123,38 +140,21 @@ import { AuthService } from '../../services/auth.service';
       form {
         display: flex;
         flex-direction: column;
-        gap: 0.9rem;
+        gap: 0.6rem;
       }
 
-      .form-field {
-        display: flex;
-        flex-direction: column;
-        gap: 0.3rem;
-      }
-
-      label {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: #1e293b;
-      }
-
-      input {
-        width: 100%;
-        padding: 0.6rem 0.75rem;
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        font-size: 0.95rem;
-        background: #ffffff;
-      }
-
-      input[aria-invalid='true'] {
-        border-color: #dc2626;
+      ion-input {
+        margin-bottom: 0.15rem;
+        --color: #1e293b;
+        --placeholder-color: #64748b;
+        --label-color: #334155;
       }
 
       .field-error,
       .form-error {
-        color: #b91c1c;
+        display: block;
         font-size: 0.8rem;
+        margin: -0.2rem 0 0.35rem;
       }
 
       .form-error {
@@ -162,12 +162,11 @@ import { AuthService } from '../../services/auth.service';
         border: 1px solid #fecaca;
         border-radius: 6px;
         padding: 0.5rem 0.65rem;
+        margin: 0.35rem 0;
       }
 
       .login-button {
-        width: 100%;
-        margin-top: 0.35rem;
-        padding: 0.65rem 1rem;
+        margin-top: 0.5rem;
       }
 
       .login-help {

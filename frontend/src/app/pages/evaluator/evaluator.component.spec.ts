@@ -1,4 +1,5 @@
 import { of } from 'rxjs';
+import { FormBuilder } from '@angular/forms';
 import { vi } from 'vitest';
 import { ApiService } from '../../services/api.service';
 import { EvaluationResponse, SourceSearchResponse } from '../../models/product.model';
@@ -71,7 +72,7 @@ describe('EvaluatorComponent EP2', () => {
       evaluateRanking: vi.fn().mockReturnValue(of(evaluation)),
       searchDemoProducts: vi.fn().mockReturnValue(of(sourceRun)),
     } as unknown as ApiService;
-    return { component: new EvaluatorComponent(api), api };
+    return { component: new EvaluatorComponent(api, new FormBuilder()), api };
   }
 
   it('applies the selected context profile and recalculates the ranking', () => {

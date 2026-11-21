@@ -1,13 +1,22 @@
-import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { Component, OnInit } from '@angular/core';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { IonBadge, IonCard, IonCardContent, IonInput, IonNote } from '@ionic/angular';
 import { ApiService } from '../../services/api.service';
 import { Product } from '../../models/product.model';
 
 @Component({
   selector: 'app-catalog',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    IonBadge,
+    IonCard,
+    IonCardContent,
+    IonInput,
+    IonNote,
+  ],
   template: `
     <div class="catalog-container">
       <div class="catalog-header">
@@ -15,52 +24,61 @@ import { Product } from '../../models/product.model';
           <h2>Catálogo de Productos</h2>
           <p class="subtitle">Listado de productos disponibles para la comparación:</p>
         </div>
-        <input
-          type="text"
-          placeholder="Buscar producto..."
-          [(ngModel)]="searchQuery"
+        <ion-input
           class="search-box"
-        />
+          type="search"
+          [formControl]="searchControl"
+          label="Buscar producto"
+          labelPlacement="stacked"
+          placeholder="Nombre, marca o categoría"
+        ></ion-input>
       </div>
 
       <div class="products-list">
         @for (product of filteredProducts; track product.id) {
-          <div class="card product-card">
-            <div class="product-main">
-              <div class="product-info">
-                <h3>{{ product.name }}</h3>
-                <span class="product-category">{{ product.category }} · {{ product.brand }}</span>
-                <p class="product-desc">{{ product.description }}</p>
-                <div class="product-meta">
-                  <span
-                    ><b>Calidad:</b>
-                    {{
-                      product.quality_rating != null
-                        ? product.quality_rating + ' / 5'
-                        : 'No disponible'
-                    }}</span
-                  >
-                  <span
-                    ><b>Stock:</b>
-                    {{ product.stock != null ? product.stock + ' unid.' : 'No disponible' }}</span
-                  >
-                  <span
-                    ><b>Specs:</b>
-                    {{
-                      product.specs_score != null ? product.specs_score + '/100' : 'No disponible'
-                    }}</span
-                  >
+          <ion-card class="product-card">
+            <ion-card-content>
+              <div class="product-main">
+                <div class="product-info">
+                  <h3>{{ product.name }}</h3>
+                  <div class="product-tags">
+                    <ion-badge color="medium">{{ product.category }}</ion-badge>
+                    <ion-badge color="primary">{{ product.brand }}</ion-badge>
+                  </div>
+                  <p class="product-desc">{{ product.description }}</p>
+                  <div class="product-meta">
+                    <span>
+                      <b>Calidad:</b>
+                      {{
+                        product.quality_rating != null
+                          ? product.quality_rating + ' / 5'
+                          : 'No disponible'
+                      }}
+                    </span>
+                    <span>
+                      <b>Stock:</b>
+                      {{ product.stock != null ? product.stock + ' unid.' : 'No disponible' }}
+                    </span>
+                    <span>
+                      <b>Specs:</b>
+                      {{
+                        product.specs_score != null ? product.specs_score + '/100' : 'No disponible'
+                      }}
+                    </span>
+                  </div>
+                </div>
+                <div class="product-price-box">
+                  <span class="price-val">{{ formatMoney(product.price) }}</span>
                 </div>
               </div>
-              <div class="product-price-box">
-                <span class="price-val">{{ formatMoney(product.price) }}</span>
-              </div>
-            </div>
-          </div>
+            </ion-card-content>
+          </ion-card>
         } @empty {
-          <div class="card">
-            <p>No se encontraron productos.</p>
-          </div>
+          <ion-card>
+            <ion-card-content>
+              <ion-note>No se encontraron productos.</ion-note>
+            </ion-card-content>
+          </ion-card>
         }
       </div>
     </div>
@@ -86,21 +104,17 @@ import { Product } from '../../models/product.model';
       }
 
       .search-box {
-        padding: 0.45rem 0.75rem;
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        font-size: 0.9rem;
-        width: 220px;
+        width: 260px;
       }
 
       .products-list {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 0.5rem;
       }
 
       .product-card {
-        margin-bottom: 0;
+        margin: 0;
       }
 
       .product-main {
@@ -112,14 +126,14 @@ import { Product } from '../../models/product.model';
 
       .product-info h3 {
         font-size: 1.05rem;
-        margin-bottom: 0.2rem;
+        margin-bottom: 0.35rem;
       }
 
-      .product-category {
-        font-size: 0.8rem;
-        color: #64748b;
-        display: block;
+      .product-tags {
+        display: flex;
+        gap: 0.35rem;
         margin-bottom: 0.4rem;
+        flex-wrap: wrap;
       }
 
       .product-desc {
@@ -133,6 +147,7 @@ import { Product } from '../../models/product.model';
         gap: 1rem;
         font-size: 0.825rem;
         color: #64748b;
+        flex-wrap: wrap;
       }
 
       .product-meta b {
@@ -149,12 +164,27 @@ import { Product } from '../../models/product.model';
         font-weight: 700;
         color: #2563eb;
       }
+
+      @media (max-width: 640px) {
+        .search-box {
+          width: 100%;
+        }
+
+        .product-main {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .product-price-box {
+          text-align: left;
+        }
+      }
     `,
   ],
 })
 export class CatalogComponent implements OnInit {
   products: Product[] = [];
-  searchQuery: string = '';
+  readonly searchControl = new FormControl('', { nonNullable: true });
 
   constructor(private readonly apiService: ApiService) {}
 
@@ -165,15 +195,15 @@ export class CatalogComponent implements OnInit {
   }
 
   get filteredProducts(): Product[] {
-    if (!this.searchQuery.trim()) {
+    const query = this.searchControl.value.trim().toLowerCase();
+    if (!query) {
       return this.products;
     }
-    const q = this.searchQuery.toLowerCase();
     return this.products.filter(
       (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.brand.toLowerCase().includes(q) ||
-        p.category.toLowerCase().includes(q),
+        p.name.toLowerCase().includes(query) ||
+        p.brand.toLowerCase().includes(query) ||
+        p.category.toLowerCase().includes(query),
     );
   }
 

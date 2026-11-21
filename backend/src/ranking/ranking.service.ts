@@ -30,6 +30,7 @@ export class RankingService {
     category?: string,
     contextProfile: string = 'personalizado',
     sourceRunId?: string,
+    userId?: string,
   ) {
     const requestWeights = weights ?? {
       weight_price: 0.4,
@@ -76,6 +77,7 @@ export class RankingService {
         const top = result.ranking[0];
         await this.prisma.rankingHistory.create({
           data: {
+            userId: userId ?? null,
             weightPrice:
               result.effective_weights?.weight_price ??
               requestWeights.weight_price,
@@ -104,9 +106,10 @@ export class RankingService {
     return result;
   }
 
-  async getHistory() {
+  async getHistory(userId?: string, isAdmin = false) {
     try {
       const history = await this.prisma.rankingHistory.findMany({
+        where: userId && !isAdmin ? { userId } : undefined,
         orderBy: { evaluatedAt: 'desc' },
         take: 20,
       });

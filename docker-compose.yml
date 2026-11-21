@@ -53,6 +53,10 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-lur.lopez.f@mail.pucv.cl}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-change_me_too}
+      JWT_SECRET: ${JWT_SECRET:-change_me_jwt_secret_min_32_chars}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
+      DEMO_USER_EMAIL: ${DEMO_USER_EMAIL:-user@pricewatch.local}
+      DEMO_USER_PASSWORD: ${DEMO_USER_PASSWORD:-change_me_user}
       DEMO_PRODUCTS_SOURCE_ENABLED: ${DEMO_PRODUCTS_SOURCE_ENABLED:-false}
     depends_on:
       database:

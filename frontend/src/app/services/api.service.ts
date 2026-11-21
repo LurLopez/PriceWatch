@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, throwError, timeout } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import {
@@ -66,6 +66,7 @@ export class ApiService {
       })
       .pipe(
         catchError((error: unknown) => {
+          if (this.isAuthError(error)) return throwError(() => error);
           if (sourceRunId) return throwError(() => error);
           const res = this.computeLocalRanking(weights, contextProfile);
           this.saveToLocalHistory(weights, res);
@@ -79,9 +80,16 @@ export class ApiService {
       return of(this.localHistory);
     }
 
-    return this.http
-      .get<EvaluationHistoryItem[]>(`${this.baseUrl}/ranking/history`)
-      .pipe(catchError(() => of(this.localHistory)));
+    return this.http.get<EvaluationHistoryItem[]>(`${this.baseUrl}/ranking/history`).pipe(
+      catchError((error: unknown) => {
+        if (this.isAuthError(error)) return throwError(() => error);
+        return of(this.localHistory);
+      }),
+    );
+  }
+
+  private isAuthError(error: unknown): boolean {
+    return error instanceof HttpErrorResponse && (error.status === 401 || error.status === 403);
   }
 
   private saveToLocalHistory(weights: WeightVector, response: EvaluationResponse): void {

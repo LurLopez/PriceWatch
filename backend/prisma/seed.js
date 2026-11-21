@@ -1,8 +1,45 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
 async function main() {
+  const adminEmail = (
+    process.env.ADMIN_EMAIL || 'admin@pricewatch.local'
+  ).toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD || 'change_me_admin';
+  const demoEmail = (
+    process.env.DEMO_USER_EMAIL || 'user@pricewatch.local'
+  ).toLowerCase();
+  const demoPassword = process.env.DEMO_USER_PASSWORD || 'change_me_user';
+
+  const [adminHash, demoHash] = await Promise.all([
+    bcrypt.hash(adminPassword, 10),
+    bcrypt.hash(demoPassword, 10),
+  ]);
+
+  await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: { passwordHash: adminHash, role: 'ADMIN', active: true },
+    create: {
+      email: adminEmail,
+      passwordHash: adminHash,
+      role: 'ADMIN',
+      active: true,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: demoEmail },
+    update: { passwordHash: demoHash, role: 'USER', active: true },
+    create: {
+      email: demoEmail,
+      passwordHash: demoHash,
+      role: 'USER',
+      active: true,
+    },
+  });
+
   const products = [
     {
       id: 'prod-001',
@@ -74,7 +111,11 @@ async function main() {
     });
   }
 
-  console.log('Seed completado exitosamente: 5 productos insertados/actualizados.');
+  console.log(
+    'Seed completado: 5 productos y 2 usuarios (admin/user) insertados o actualizados.',
+  );
+  console.log(`  - ADMIN: ${adminEmail}`);
+  console.log(`  - USER:  ${demoEmail}`);
 }
 
 main()

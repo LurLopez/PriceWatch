@@ -2,8 +2,8 @@
 
 > **Asignatura:** OII436-1 Ingeniería Web Avanzada — PUCV
 > **Autor:** Lur Lopez Fraile (`lur.lopez.f@mail.pucv.cl`)
-> **Entrega actual:** EP2 — información web y prototipo adaptativo
-> **Estado:** implementación y pruebas locales verificadas; la fuente aporta datos sintéticos
+> **Entrega actual:** EF — solución desplegable con autenticación y autorización
+> **Estado:** autenticación JWT y roles implementados; la fuente aporta datos sintéticos de demostración
 
 PriceWatch compara productos de comercio electrónico con **múltiples criterios ponderables por el usuario** (precio, calidad, stock y especificaciones) y entrega un ranking **explicable**: no solo dice qué producto conviene, sino por qué, mostrando la normalización y el aporte de cada criterio al puntaje final.
 
@@ -64,6 +64,7 @@ Los comparadores de precios actuales ordenan el catálogo por un **criterio úni
 | F6 | Salud del sistema | `GET /api/health` verifica NestJS + PostgreSQL + FastAPI |
 | F7 | Login básico | `POST /api/auth/login` valida contra variables de entorno y emite token Bearer |
 | F8 | Degradación elegante | Si FastAPI falla, NestJS responde `success_fallback` con un ranking de respaldo, nunca un error 500 |
+| F9 | Autenticación y autorización | JWT con expiración, contraseñas con `bcrypt`, roles `ADMIN`/`USER`, guards de ruta y protección de endpoints |
 
 **Niveles del ranking:** `>= 80` Altamente Recomendado · `>= 60` Recomendado · `>= 40` Aceptable · `< 40` No Favorable.
 
@@ -94,6 +95,7 @@ Navegador / móvil
         │  POST /api/ranking/evaluate
         ▼
 NestJS API Gateway (3000)
+  ├── JWT + roles (ADMIN/USER) ── bcrypt
   ├── Prisma ORM ──────► PostgreSQL 16 (5432)
   └── HTTP ─► FastAPI (8000) ── adquisición/preparación + MAUT + explicación
                            └── HTTPS puntual ─► DummyJSON (datos de demostración)
@@ -149,6 +151,8 @@ curl localhost:3000/api/products
 
 El stack levanta cuatro servicios: PostgreSQL, FastAPI, NestJS y Nginx. La interfaz web queda en `http://localhost:4200` (o `FRONTEND_PORT`). Para detener: `docker compose down` (agregar `-v` solo si se quiere borrar la base).
 
+Al iniciar, el backend ejecuta `prisma migrate deploy` y el seed de productos y usuarios. Si la base fue creada con `prisma db push` en EP1/EP2, el entrypoint detecta el estado y marca la migración base como aplicada sin borrar los datos existentes. Las credenciales de los usuarios seed se toman de `ADMIN_*` y `DEMO_USER_*`; `JWT_SECRET` firma los tokens.
+
 Si un puerto está ocupado, revisa el proceso con `ss -ltnp | grep :PUERTO` y deténlo, o cambia `POSTGRES_PORT`, `PYTHON_PORT`, `BACKEND_PORT` o `FRONTEND_PORT` en `.env` antes de levantar el stack.
 
 ### 4.2 Ejecución manual (desarrollo)
@@ -202,14 +206,16 @@ npm start                     # proxy /api → http://localhost:3000
 |---|---|---|
 | `GET` | `/api/health` | Estado de NestJS + PostgreSQL + FastAPI |
 | `GET` | `/api/docs` | Swagger / OpenAPI |
-| `POST` | `/api/auth/login` | Login básico → token Bearer |
-| `GET` | `/api/products?category=` | Catálogo desde PostgreSQL |
-| `GET` | `/api/products/:id` | Detalle de producto |
-| `POST` | `/api/ranking/evaluate` | Evaluación multicriterio (orquesta FastAPI) |
-| `GET` | `/api/ranking/history` | Historial persistido de evaluaciones |
-| `POST` | `/api/sources/demo-products/search` | Consulta manual, acotada y registrada a DummyJSON |
-| `GET` | `/api/sources/demo-products/runs` | Últimas corridas y métricas de extracción |
-| `GET` | `/api/sources/demo-products/runs/:id` | Corrida y registros normalizados |
+| `POST` | `/api/auth/login` | Login con email/contraseña → token JWT |
+| `GET` | `/api/auth/me` | Perfil del usuario autenticado (JWT) |
+| `POST` | `/api/auth/logout` | Cierre de sesión del cliente (JWT) |
+| `GET` | `/api/products?category=` | Catálogo desde PostgreSQL (público) |
+| `GET` | `/api/products/:id` | Detalle de producto (público) |
+| `POST` | `/api/ranking/evaluate` | Evaluación multicriterio (USER/ADMIN) |
+| `GET` | `/api/ranking/history` | Historial del usuario autenticado (USER/ADMIN) |
+| `POST` | `/api/sources/demo-products/search` | Consulta a DummyJSON (solo ADMIN) |
+| `GET` | `/api/sources/demo-products/runs` | Corridas de fuente (solo ADMIN) |
+| `GET` | `/api/sources/demo-products/runs/:id` | Corrida y registros normalizados (solo ADMIN) |
 | `GET` | `/health` (FastAPI :8000) | Salud del motor analítico |
 | `POST` | `/evaluate` (FastAPI :8000) | Cálculo MAUT |
 | `POST` | `/sources/demo-products/search` (FastAPI :8000) | Consulta interna de la API de muestra |
@@ -248,22 +254,43 @@ Los criterios ausentes en uno o más productos se omiten para toda la muestra y 
 
 ---
 
-## 6. Pruebas
+## 6. Seguridad y autorización
+
+- **Contraseñas:** almacenadas con `bcrypt` (10 rondas); nunca se devuelven en las respuestas.
+- **Tokens:** JWT firmado con `JWT_SECRET`, expiración configurable con `JWT_EXPIRES_IN` (por defecto `1h`).
+- **Roles:** `ADMIN` y `USER`. El rol viaja en el token y se valida con `JwtAuthGuard` + `RolesGuard`.
+- **Endpoints públicos:** catálogo y salud. **USER:** evaluación e historial propio. **ADMIN:** consulta de fuentes y visionado global del historial.
+- **Frontend:** `authInterceptor` añade el token, `authGuard` protege evaluador e historial, y un 401 limpia la sesión y redirige al login.
+- **Migraciones:** el backend aplica `prisma migrate deploy` al iniciar; si detecta una base creada con `db push`, marca la migración base como aplicada sin borrar datos.
+
+**Login de demostración:**
+
+```bash
+curl -X POST http://localhost:3000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@pricewatch.local","password":"<ADMIN_PASSWORD>"}'
+```
+
+Las credenciales se configuran en `.env` mediante `ADMIN_EMAIL`/`ADMIN_PASSWORD` y `DEMO_USER_EMAIL`/`DEMO_USER_PASSWORD`. El archivo `.env` no se versiona.
+
+## 7. Pruebas
 
 | Componente | Comando | Cobertura |
 |---|---|---|
 | python-service | `python -m pytest -q` · `flake8 .` | Extracción (HTTP simulada), limpieza, deduplicación, perfiles, criterios faltantes y fallos |
-| backend | `npm test` · `npm run lint` · `npm run build` · `npm run test:e2e` | Corridas/métricas de fuente, persistencia mockeada, ranking, fallback y contrato HTTP |
-| frontend | `npm test -- --watch=false` · `npm run build` | Consulta acotada, envío del contexto y errores sin sustituir la muestra por datos locales |
+| backend | `npm test` · `npm run lint` · `npm run build` · `npm run test:e2e` | Auth JWT, roles, guards, correduras/métricas de fuente, persistencia mockeada, ranking, fallback y contrato HTTP |
+| frontend | `npm test -- --watch=false` · `npm run build` | Login, AuthService, guard, interceptor, consulta acotada, envío del contexto y errores sin sustituir la muestra |
 | infra | `terraform fmt -check` · `terraform validate` | Sintaxis y validez del manifiesto staging |
 
-Verificación local: **13 pruebas Jest**, **2 pruebas e2e**, **11 pruebas Vitest**, **15 pruebas pytest** y `flake8` sin errores. Las pruebas no realizan llamadas externas.
+Verificación local: **25 pruebas Jest**, **5 pruebas e2e**, **18 pruebas Vitest**, **15 pruebas pytest** y `flake8` sin errores. Las pruebas no realizan llamadas externas.
+
+**Verificación de autenticación (21/11/2026):** con PostgreSQL temporal se aplicaron las dos migraciones y el seed. Se comprobó login `ADMIN` (200), `/api/auth/me` (200), historial sin token (401), usuario `USER` intentando consultar fuentes (403), evaluación autenticada (201) e historial filtrado por usuario. También se simuló una base creada con `db push`: el baseline marcó la migración inicial como aplicada y conservó los datos existentes.
 
 **Sonda de la fuente (22/10/2026):** una consulta `laptop` devolvió 5 registros aceptados, 0 rechazados y 0 duplicados. En esa muestra sintética, `economia` eligió Lenovo Yoga 920 (83,53/100) y `valoraciones` eligió Huawei Matebook X Pro (94,08/100). La sonda pasó por FastAPI en memoria. Además, una prueba integrada por NestJS creó una corrida persistida y guardó un ranking en el historial. **Los datos son sintéticos, no precios reales.** Detalles en [`ep2/PLAN-EP2.md`](ep2/PLAN-EP2.md).
 
 ---
 
-## 7. Pipeline DevSecOps
+## 8. Pipeline DevSecOps
 
 Workflow `.github/workflows/ci.yml` con jobs independientes y un quality gate final:
 
@@ -276,7 +303,7 @@ Workflow `.github/workflows/ci.yml` con jobs independientes y un quality gate fi
 
 ---
 
-## 8. Variables y secretos
+## 9. Variables y secretos
 
 `cp .env.example .env` y ajustar los valores. El `.env` real está excluido por `.gitignore`; solo se versiona `.env.example`.
 
@@ -291,26 +318,29 @@ Workflow `.github/workflows/ci.yml` con jobs independientes y un quality gate fi
 | `PYTHON_SERVICE_URL` / `PYTHON_PORT` | Ubicación y puerto del motor FastAPI |
 | `FRONTEND_PORT` | Puerto del cliente |
 | `CORS_ORIGIN` | Origen permitido por NestJS (`*` en desarrollo) |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Credenciales de la auth básica EP1 |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Credenciales del usuario administrador (seed) |
+| `DEMO_USER_EMAIL` / `DEMO_USER_PASSWORD` | Credenciales del usuario de demostración con rol `USER` (seed) |
+| `JWT_SECRET` | Clave de firma de los tokens; obligatoria en producción |
+| `JWT_EXPIRES_IN` | Duración del token (por defecto `1h`) |
 | `DEMO_PRODUCTS_SOURCE_ENABLED` | Habilita la consulta explícita de DummyJSON; falso por defecto |
 
 En GitHub Actions no se realizan consultas externas; las pruebas usan transporte HTTP simulado. La bandera de fuente permanece desactivada por defecto en CI. **No habilitarla en un despliegue público sin proteger la ruta de consulta y revisar las condiciones de la fuente.**
 
 ---
 
-## 9. Prototipo navegable
+## 10. Prototipo navegable
 
-El prototipo navegable es la aplicación Angular/Ionic incluida en `frontend/`. Se puede abrir con Docker Compose en `http://localhost:4200` y recorrer sus tres vistas (catálogo, evaluador e historial). No se mantiene un enlace Figma separado para esta entrega.
+El prototipo navegable es la aplicación Angular/Ionic incluida en `frontend/`. Se puede abrir con Docker Compose en `http://localhost:4200`, iniciar sesión con las credenciales configuradas en `.env` y recorrer las vistas de evaluador, catálogo e historial. El catálogo es público; evaluador e historial requieren sesión. No se mantiene un enlace Figma separado para esta entrega.
 
 ---
 
-## 10. Documentación adicional
+## 11. Documentación adicional
 
 - `ep2/PLAN-EP2.md` — requisitos, fuente de demostración, trazabilidad, adaptación y criterios de evaluación.
 - `ep2/ADR-003-fuente-y-adaptacion.md` — decisión de fuente y alcance adaptativo.
 - `ep2/GUIA-DEFENSA.md` — flujo, decisiones, límites y pasos de demostración.
 - `CONTRIBUTING.md` — GitFlow, commits convencionales y verificación local.
 
-## 11. Declaración de uso de herramientas de IA
+## 12. Declaración de uso de herramientas de IA
 
 Se utilizó ChatGPT/OpenCode como apoyo para interpretar requisitos, proponer e implementar cambios, preparar pruebas y documentar decisiones. La revisión, autoría y responsabilidad del contenido entregado corresponden al estudiante, conforme a las instrucciones de integridad académica de la asignatura.

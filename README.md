@@ -369,6 +369,8 @@ cd android
 
 Probado en emulador Android: login contra el backend local y navegación al evaluador. La versión de producción debe apuntar a la URL HTTPS de staging.
 
+![Login en Android](docs/evidencias/android-login.png)
+
 No se mantiene un enlace Figma separado para esta entrega.
 
 ---

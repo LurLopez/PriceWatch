@@ -11,6 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { isAxiosError } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { Prisma } from '@prisma/client';
+import { RequestContextService } from '../common/request-context.service';
 import { PrismaService } from '../prisma.service';
 import { SearchDemoProductsDto } from './dto/search-demo-products.dto';
 
@@ -57,6 +58,7 @@ export class SourcesService {
     private readonly prisma: PrismaService,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly requestContext: RequestContextService,
   ) {
     this.pythonUrl =
       this.configService.get<string>('PYTHON_SERVICE_URL') ||
@@ -112,6 +114,9 @@ export class SourcesService {
             timeout: 15_000,
             maxContentLength: MAX_RESPONSE_BYTES,
             maxBodyLength: 10_000,
+            headers: {
+              'x-request-id': this.requestContext.getRequestId() ?? '',
+            },
           },
         ),
       );

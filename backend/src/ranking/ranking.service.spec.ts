@@ -3,6 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { RankingService } from './ranking.service';
 import { PrismaService } from '../prisma.service';
+import { RequestContextService } from '../common/request-context.service';
 import { ProductsService } from '../products/products.service';
 import { of } from 'rxjs';
 
@@ -98,6 +99,10 @@ describe('RankingService', () => {
           useValue: {
             get: jest.fn().mockReturnValue('http://localhost:8000'),
           },
+        },
+        {
+          provide: RequestContextService,
+          useValue: { getRequestId: () => 'test-request-id' },
         },
       ],
     }).compile();

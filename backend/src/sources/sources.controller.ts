@@ -17,6 +17,7 @@ import { Role } from '@prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { Throttle } from '@nestjs/throttler';
 import { SearchDemoProductsDto } from './dto/search-demo-products.dto';
 import { SourcesService } from './sources.service';
 
@@ -29,6 +30,7 @@ export class SourcesController {
   constructor(private readonly sourcesService: SourcesService) {}
 
   @Post('search')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Consultar una página acotada de productos de demostración',
   })

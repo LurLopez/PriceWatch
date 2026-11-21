@@ -207,6 +207,7 @@ npm start                     # proxy /api → http://localhost:3000
 | Método | Endpoint (NestJS :3000) | Descripción |
 |---|---|---|
 | `GET` | `/api/health` | Estado de NestJS + PostgreSQL + FastAPI |
+| `GET` | `/api/metrics` | Métricas operativas básicas (solo ADMIN) |
 | `GET` | `/api/docs` | Swagger / OpenAPI |
 | `POST` | `/api/auth/login` | Login con email/contraseña → token JWT |
 | `GET` | `/api/auth/me` | Perfil del usuario autenticado (JWT) |
@@ -264,6 +265,9 @@ Los criterios ausentes en uno o más productos se omiten para toda la muestra y 
 - **Endpoints públicos:** catálogo y salud. **USER:** evaluación e historial propio. **ADMIN:** consulta de fuentes y visionado global del historial.
 - **Frontend:** `authInterceptor` añade el token, `authGuard` protege evaluador e historial, y un 401 limpia la sesión y redirige al login.
 - **Migraciones:** el backend aplica `prisma migrate deploy` al iniciar; si detecta una base creada con `db push`, marca la migración base como aplicada sin borrar datos.
+- **Cabeceras y límites:** `helmet`, CORS configurable, cuerpo máximo de 100 KB y `@nestjs/throttler` (120/min global, 5/min en login, 10/min en fuente).
+- **Observabilidad:** logs JSON con `x-request-id` correlacionado entre NestJS y FastAPI, `GET /api/metrics` para ADMIN y health checks en cada servicio. Detalle en [`docs/observabilidad.md`](docs/observabilidad.md).
+- **Seguridad y privacidad:** modelo STRIDE, roles, minimización de datos y ética de la fuente en [`docs/seguridad.md`](docs/seguridad.md).
 
 **Login de demostración:**
 
@@ -284,7 +288,7 @@ Las credenciales se configuran en `.env` mediante `ADMIN_EMAIL`/`ADMIN_PASSWORD`
 | frontend | `npm test -- --watch=false` · `npm run build` | Login, AuthService, guard, interceptor, consulta acotada, envío del contexto y errores sin sustituir la muestra |
 | infra | `terraform fmt -check` · `terraform validate` | Sintaxis y validez del manifiesto staging |
 
-Verificación local: **25 pruebas Jest**, **5 pruebas e2e**, **27 pruebas Vitest**, **15 pruebas pytest** y `flake8` sin errores. Las pruebas no realizan llamadas externas.
+Verificación local: **30 pruebas Jest**, **5 pruebas e2e**, **27 pruebas Vitest**, **16 pruebas pytest** y `flake8` sin errores. Las pruebas no realizan llamadas externas. FastAPI reporta 95 % de cobertura.
 
 **Verificación de autenticación (21/11/2026):** con PostgreSQL temporal se aplicaron las dos migraciones y el seed. Se comprobó login `ADMIN` (200), `/api/auth/me` (200), historial sin token (401), usuario `USER` intentando consultar fuentes (403), evaluación autenticada (201) e historial filtrado por usuario. También se simuló una base creada con `db push`: el baseline marcó la migración inicial como aplicada y conservó los datos existentes.
 

@@ -123,3 +123,19 @@ def test_evaluate_zero_weights_fails():
     }
     response = client.post("/evaluate", json=payload)
     assert response.status_code == 400
+
+
+def test_request_id_header_and_metrics():
+    response = client.get("/health", headers={"x-request-id": "test-request-123"})
+    assert response.status_code == 200
+    assert response.headers["x-request-id"] == "test-request-123"
+
+    generated = client.get("/health")
+    assert generated.headers["x-request-id"]
+
+    metrics = client.get("/metrics")
+    assert metrics.status_code == 200
+    data = metrics.json()
+    assert data["totalRequests"] >= 2
+    assert "200" in data["statusCounts"]
+    assert data["averageResponseTimeMs"] >= 0

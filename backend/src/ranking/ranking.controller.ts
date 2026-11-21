@@ -49,9 +49,6 @@ export class RankingController {
   @ApiResponse({ status: 200, description: 'Historial de evaluaciones' })
   @ApiResponse({ status: 401, description: 'Token inválido o expirado' })
   async getHistory(@CurrentUser() user: AuthenticatedUser) {
-    return this.rankingService.getHistory(
-      user.sub,
-      user.role === Role.ADMIN,
-    );
+    return this.rankingService.getHistory(user.sub, user.role === Role.ADMIN);
   }
 }

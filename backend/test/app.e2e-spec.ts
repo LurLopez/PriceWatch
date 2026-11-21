@@ -68,9 +68,10 @@ describe('PriceWatch API (e2e)', () => {
     return request(app.getHttpServer())
       .get('/api/health')
       .expect(200)
-      .expect(({ body }) => {
+      .expect(({ body, headers }) => {
         expect(body.status).toBe('ok');
         expect(body.database).toBe('connected');
+        expect(headers['x-request-id']).toBeDefined();
       });
   });
 
@@ -114,9 +115,25 @@ describe('PriceWatch API (e2e)', () => {
   });
 
   it('protege el historial de rankings sin token', () => {
+    return request(app.getHttpServer()).get('/api/ranking/history').expect(401);
+  });
+
+  it('protege las métricas y las expone al ADMIN', async () => {
+    await request(app.getHttpServer()).get('/api/metrics').expect(401);
+
+    const login = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'admin@pricewatch.local', password: 'secret123' })
+      .expect(200);
+
     return request(app.getHttpServer())
-      .get('/api/ranking/history')
-      .expect(401);
+      .get('/api/metrics')
+      .set('Authorization', `Bearer ${login.body.accessToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.totalRequests).toBeGreaterThan(0);
+        expect(body.averageResponseTimeMs).toBeGreaterThanOrEqual(0);
+      });
   });
 
   afterAll(async () => {

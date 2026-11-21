@@ -4,9 +4,13 @@ Microservicio de cálculo analítico especializado en normalización
 Min-Max y optimización de utilidad multiatributo (MAUT).
 """
 
+import json
+import logging
+import time
+import uuid
 from typing import Dict, List, Literal, Optional
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 from sources import (
     SourceSearchRequest,
@@ -20,13 +24,61 @@ app = FastAPI(
     description="Motor de optimización y ranking multicriterio para productos comerciales.",
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+logger = logging.getLogger("pricewatch-evaluator")
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(handler)
+
+METRICS = {
+    "started_at": time.time(),
+    "total_requests": 0,
+    "error_requests": 0,
+    "total_duration_ms": 0.0,
+    "status_counts": {},
+}
+
+
+@app.middleware("http")
+async def observability_middleware(request: Request, call_next):
+    """Propaga x-request-id y registra una línea JSON por solicitud."""
+    request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+    started_at = time.perf_counter()
+    status = 500
+
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        response.headers["x-request-id"] = request_id
+        return response
+    finally:
+        duration_ms = round((time.perf_counter() - started_at) * 1000, 2)
+        METRICS["total_requests"] += 1
+        METRICS["total_duration_ms"] += duration_ms
+        if status >= 400:
+            METRICS["error_requests"] += 1
+        status_key = str(status)
+        METRICS["status_counts"][status_key] = (
+            METRICS["status_counts"].get(status_key, 0) + 1
+        )
+        logger.info(
+            json.dumps(
+                {
+                    "timestamp": time.strftime(
+                        "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
+                    ),
+                    "level": "error" if status >= 500 else "info",
+                    "service": "pricewatch-evaluator",
+                    "message": "request.completed",
+                    "requestId": request_id,
+                    "method": request.method,
+                    "path": request.url.path,
+                    "status": status,
+                    "durationMs": duration_ms,
+                }
+            )
+        )
 
 
 class WeightVector(BaseModel):
@@ -120,6 +172,24 @@ def health_check():
 async def search_demo_product_source(payload: SourceSearchRequest):
     """Consulta una página acotada de la API de productos de demostración."""
     return await search_demo_products(payload)
+
+
+@app.get("/metrics")
+def metrics_snapshot():
+    """Métricas operativas internas del motor analítico."""
+    total = METRICS["total_requests"]
+    errors = METRICS["error_requests"]
+    return {
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "uptimeSeconds": round(time.time() - METRICS["started_at"], 2),
+        "totalRequests": total,
+        "errorRequests": errors,
+        "errorRate": round((errors / total) * 100, 2) if total else 0,
+        "averageResponseTimeMs": (
+            round(METRICS["total_duration_ms"] / total, 2) if total else 0
+        ),
+        "statusCounts": METRICS["status_counts"],
+    }
 
 
 @app.post("/evaluate", response_model=EvaluateResponse)

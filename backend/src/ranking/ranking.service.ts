@@ -6,6 +6,7 @@ import {
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
+import { RequestContextService } from '../common/request-context.service';
 import { PrismaService } from '../prisma.service';
 import { ProductsService } from '../products/products.service';
 import { WeightsDto } from './dto/evaluate-ranking.dto';
@@ -19,6 +20,7 @@ export class RankingService {
     private readonly productsService: ProductsService,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly requestContext: RequestContextService,
   ) {
     this.pythonUrl =
       this.configService.get<string>('PYTHON_SERVICE_URL') ||
@@ -57,7 +59,12 @@ export class RankingService {
             context_profile: contextProfile,
             source_run_id: sourceRunId,
           },
-          { timeout: 4000 },
+          {
+            timeout: 4000,
+            headers: {
+              'x-request-id': this.requestContext.getRequestId() ?? '',
+            },
+          },
         ),
       );
       result = response.data;

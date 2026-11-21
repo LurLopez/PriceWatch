@@ -2,6 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { HttpException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { RequestContextService } from '../common/request-context.service';
 import { SearchDemoProductsDto } from './dto/search-demo-products.dto';
 import { SourcesService } from './sources.service';
 import { of } from 'rxjs';
@@ -89,8 +90,17 @@ describe('SourcesService', () => {
       }),
     } as unknown as ConfigService;
 
+    const requestContext = {
+      getRequestId: () => 'test-request-id',
+    } as RequestContextService;
+
     return {
-      service: new SourcesService(prisma, httpService, configService),
+      service: new SourcesService(
+        prisma,
+        httpService,
+        configService,
+        requestContext,
+      ),
       prisma,
       httpService,
       createMany,

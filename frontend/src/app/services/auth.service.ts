@@ -1,12 +1,14 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
+import { getApiBaseUrl } from '../config/api.config';
 import { AuthUser, LoginResponse } from '../models/auth.model';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly tokenKey = 'pricewatch.access_token';
   private readonly userKey = 'pricewatch.user';
+  private readonly baseUrl = getApiBaseUrl();
 
   private readonly tokenSignal = signal<string | null>(this.readToken());
   private readonly userSignal = signal<AuthUser | null>(this.readUser());
@@ -19,7 +21,7 @@ export class AuthService {
   constructor(private readonly http: HttpClient) {}
 
   login(email: string, password: string): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>('/api/auth/login', { email, password }).pipe(
+    return this.http.post<LoginResponse>(`${this.baseUrl}/auth/login`, { email, password }).pipe(
       tap((response) => {
         this.persistSession(response.accessToken, response.user);
       }),
@@ -27,7 +29,7 @@ export class AuthService {
   }
 
   me(): Observable<AuthUser> {
-    return this.http.get<AuthUser>('/api/auth/me').pipe(
+    return this.http.get<AuthUser>(`${this.baseUrl}/auth/me`).pipe(
       tap((user) => {
         this.persistUser(user);
       }),
@@ -38,7 +40,7 @@ export class AuthService {
     const token = this.getToken();
     if (token) {
       this.http
-        .post('/api/auth/logout', {}, { headers: { Authorization: `Bearer ${token}` } })
+        .post(`${this.baseUrl}/auth/logout`, {}, { headers: { Authorization: `Bearer ${token}` } })
         .subscribe({ error: () => undefined });
     }
     this.logoutLocal();

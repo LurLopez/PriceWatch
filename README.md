@@ -2,8 +2,8 @@
 
 > **Asignatura:** OII436-1 Ingeniería Web Avanzada — PUCV
 > **Autor:** Lur Lopez Fraile (`lur.lopez.f@mail.pucv.cl`)
-> **Entrega actual:** EF — solución desplegable con autenticación y autorización
-> **Estado:** autenticación JWT y roles implementados; la fuente aporta datos sintéticos de demostración
+> **Entrega actual:** EF — solución desplegable con autenticación, PWA y Android
+> **Estado:** autenticación JWT/roles, PWA instalable y APK Android generados; la fuente aporta datos sintéticos de demostración
 
 PriceWatch compara productos de comercio electrónico con **múltiples criterios ponderables por el usuario** (precio, calidad, stock y especificaciones) y entrega un ranking **explicable**: no solo dice qué producto conviene, sino por qué, mostrando la normalización y el aporte de cada criterio al puntaje final.
 
@@ -65,6 +65,7 @@ Los comparadores de precios actuales ordenan el catálogo por un **criterio úni
 | F7 | Login básico | `POST /api/auth/login` valida contra variables de entorno y emite token Bearer |
 | F8 | Degradación elegante | Si FastAPI falla, NestJS responde `success_fallback` con un ranking de respaldo, nunca un error 500 |
 | F9 | Autenticación y autorización | JWT con expiración, contraseñas con `bcrypt`, roles `ADMIN`/`USER`, guards de ruta y protección de endpoints |
+| F10 | PWA y Android | Manifest, service worker, iconos, instalación, caché del catálogo y aviso offline; APK Android con Capacitor |
 
 **Niveles del ranking:** `>= 80` Altamente Recomendado · `>= 60` Recomendado · `>= 40` Aceptable · `< 40` No Favorable.
 
@@ -328,9 +329,47 @@ En GitHub Actions no se realizan consultas externas; las pruebas usan transporte
 
 ---
 
-## 10. Prototipo navegable
+## 10. Prototipo navegable, PWA y Android
 
-El prototipo navegable es la aplicación Angular/Ionic incluida en `frontend/`. Se puede abrir con Docker Compose en `http://localhost:4200`, iniciar sesión con las credenciales configuradas en `.env` y recorrer las vistas de evaluador, catálogo e historial. El catálogo es público; evaluador e historial requieren sesión. No se mantiene un enlace Figma separado para esta entrega.
+El prototipo navegable es la aplicación Angular/Ionic incluida en `frontend/`. Se puede abrir con Docker Compose en `http://localhost:4200`, iniciar sesión con las credenciales configuradas en `.env` y recorrer las vistas de evaluador, catálogo e historial. El catálogo es público; evaluador e historial requieren sesión.
+
+### PWA
+
+- Manifest `public/manifest.webmanifest` con iconos de 72 a 512 px y variante maskable.
+- Service worker Angular (`ngsw-config.json`) con precarga del app shell e iconos.
+- Caché `freshness` para el catálogo público (`/api/products`) con TTL de 1 hora.
+- Instalación desde el navegador mediante el botón “Instalar app”.
+- Aviso de actualización disponible y recarga controlada.
+- Banner de conectividad: el catálogo puede verse desde caché; evaluador e historial requieren red.
+
+```bash
+cd frontend
+npm run build
+# servir dist/frontend/browser por HTTP (no file://) para probar el service worker
+npx http-server dist/frontend/browser -p 8080
+```
+
+### Android
+
+- Proyecto nativo en `frontend/android/` generado con Capacitor.
+- APK debug: `frontend/android/app/build/outputs/apk/debug/app-debug.apk`.
+- La app Android usa una URL absoluta (`environment.apiBaseUrlNative`) porque el WebView no tiene el proxy de Nginx.
+- Para el emulador, `10.0.2.2:3001` apunta al backend del host. Para un dispositivo físico o staging, cambiar esa URL y agregar el dominio a `network_security_config.xml`.
+
+```bash
+cd frontend
+npm run build
+npx cap sync android
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+export ANDROID_HOME=/home/lur/android-sdk
+cd android
+./gradlew assembleDebug
+/home/lur/android-sdk/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+Probado en emulador Android: login contra el backend local y navegación al evaluador. La versión de producción debe apuntar a la URL HTTPS de staging.
+
+No se mantiene un enlace Figma separado para esta entrega.
 
 ---
 

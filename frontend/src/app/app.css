@@ -16,6 +16,15 @@ main.container {
   font-size: 0.85rem;
 }
 
+.offline-banner {
+  background: #fff7ed;
+  border-bottom: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 0.88rem;
+  padding: 0.6rem 1rem;
+  text-align: center;
+}
+
 .footer-content {
   max-width: 960px;
   margin: 0 auto;

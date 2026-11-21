@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { PwaService } from '../../services/pwa.service';
 
 @Component({
   selector: 'app-navbar',
@@ -27,6 +28,16 @@ import { AuthService } from '../../services/auth.service';
         </nav>
 
         <div class="session">
+          @if (pwaService.updateAvailable()) {
+            <button type="button" class="pwa-button" (click)="pwaService.reload()">
+              Actualizar
+            </button>
+          }
+          @if (pwaService.installPromptVisible()) {
+            <button type="button" class="pwa-button" (click)="pwaService.install()">
+              Instalar app
+            </button>
+          }
           @if (authService.isAuthenticated()) {
             <span class="user-chip" [title]="authService.currentUser()?.email || ''">
               {{ authService.currentUser()?.email }}
@@ -125,6 +136,19 @@ import { AuthService } from '../../services/auth.service';
         cursor: pointer;
         text-decoration: none;
       }
+      .pwa-button {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #ffffff;
+        background: #0f766e;
+        border: 1px solid #0f766e;
+        border-radius: 5px;
+        padding: 0.3rem 0.55rem;
+        cursor: pointer;
+      }
+      .pwa-button:hover {
+        background: #115e59;
+      }
       .logout-button:hover,
       .login-link:hover {
         background: #eff6ff;
@@ -151,6 +175,7 @@ import { AuthService } from '../../services/auth.service';
 })
 export class NavbarComponent {
   readonly authService = inject(AuthService);
+  readonly pwaService = inject(PwaService);
   private readonly router = inject(Router);
 
   logout(): void {

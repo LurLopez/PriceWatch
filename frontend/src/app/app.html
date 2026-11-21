@@ -1,4 +1,10 @@
 <app-navbar></app-navbar>
+@if (!connectivity.online()) {
+  <div class="offline-banner" role="status" aria-live="polite">
+    Sin conexión. El catálogo puede consultarse desde la caché; el evaluador y el historial
+    requieren conexión con el servidor.
+  </div>
+}
 <main class="container">
   <router-outlet></router-outlet>
 </main>

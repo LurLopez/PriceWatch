@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">PriceWatch</string>
+    <string name="title_activity_main">PriceWatch</string>
+    <string name="package_name">cl.pucv.pricewatch</string>
+    <string name="custom_url_scheme">cl.pucv.pricewatch</string>
+</resources>

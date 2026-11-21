@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, throwError, timeout } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { getApiBaseUrl } from '../config/api.config';
 import {
   Product,
   WeightVector,
@@ -15,7 +16,7 @@ import {
   providedIn: 'root',
 })
 export class ApiService {
-  private readonly baseUrl = '/api';
+  private readonly baseUrl = getApiBaseUrl();
 
   // Modo mock desactivado: consume API real con fallback en caso de error
   public mockMode = false;

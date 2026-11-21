@@ -32,25 +32,21 @@ Los comparadores de precios actuales ordenan el catálogo por un **criterio úni
 4. Automatizar la calidad y seguridad con un pipeline **DevSecOps** que bloquee entregas defectuosas.
 5. Lograr una aplicación adaptable a escritorio, web móvil y Android.
 
-### 1.4 Alcance de EP1
+### 1.4 Alcance de la entrega final
 
 **Incluye:**
 
-- Flujo vertical mínimo funcional: frontend Ionic → API NestJS → motor FastAPI → PostgreSQL.
-- Catálogo de productos persistido en PostgreSQL con esquema Prisma y seed.
-- Evaluación multicriterio con degradación elegante ante fallos del motor.
-- Autenticación básica con token Bearer (credenciales por variables de entorno).
-- Contenerización completa con Docker Compose y pipeline CI/CD en GitHub Actions.
-- Documentación de proyecto, arquitectura y decisiones (ADRs).
-
-**Alcance de EP2:**
-
+- Flujo vertical completo: frontend Angular/Ionic/PWA/Android → API NestJS → motor FastAPI → PostgreSQL.
+- Autenticación JWT con usuarios persistidos, roles `ADMIN`/`USER`, guards, interceptor y login en el frontend.
+- Catálogo persistido, evaluación multicriterio, historial por usuario y degradación elegante.
 - Obtención acotada desde una API de demostración, preparación trazable y métricas de calidad.
-- Perfiles de prioridad explicables y editables por el usuario, aplicados al ranking.
-- Persistencia de corridas, registros normalizados y del perfil usado en cada evaluación.
-- No se integran ofertas comerciales reales ni se consulta Mercado Libre.
+- Perfiles adaptativos explicables, evaluación contra una versión base y prueba de sesgo de marca.
+- PWA instalable, APK Android generado y probado en emulador.
+- Docker Compose de desarrollo y staging, imágenes multi-stage, pipeline DevSecOps, Terraform y rollback.
+- Observabilidad con logs JSON, request ID correlacionado, métricas y health checks.
+- Documentación técnica, ADRs, prototipo navegable y guion de demo/defensa.
 
-**Fuera de alcance en esta entrega:** usuarios persistidos con roles, refresh tokens y alertas de precio. La autenticación sigue siendo la básica de EP1 y queda registrada como trabajo futuro.
+**Fuera de alcance:** precios reales, scraping de sitios con restricciones, refresh tokens, MFA, estudio formal con usuarios y versión iOS (opcional según el enunciado).
 
 ### 1.5 Funcionalidades
 
@@ -62,11 +58,13 @@ Los comparadores de precios actuales ordenan el catálogo por un **criterio úni
 | F4 | Explicación global | Producto ganador, texto explicativo y advertencias de stock crítico o agotado |
 | F5 | Historial | Registro persistido de cada evaluación (pesos, ganador, explicación y fecha) |
 | F6 | Salud del sistema | `GET /api/health` verifica NestJS + PostgreSQL + FastAPI |
-| F7 | Login básico | `POST /api/auth/login` valida contra variables de entorno y emite token Bearer |
+| F7 | Login JWT | `POST /api/auth/login` valida usuarios persistidos con bcrypt y emite un JWT con expiración |
 | F8 | Degradación elegante | Si FastAPI falla, NestJS responde `success_fallback` con un ranking de respaldo, nunca un error 500 |
 | F9 | Autenticación y autorización | JWT con expiración, contraseñas con `bcrypt`, roles `ADMIN`/`USER`, guards de ruta y protección de endpoints |
 | F10 | PWA y Android | Manifest, service worker, iconos, instalación, caché del catálogo y aviso offline; APK Android con Capacitor |
 | F11 | Ionic y formularios reactivos | Componentes `ion-*` en navegación, tarjetas, entradas, selects, sliders, badges y spinners; login, catálogo y evaluador con `ReactiveFormsModule` y validadores |
+| F12 | Observabilidad y seguridad | Logs JSON, `x-request-id` correlacionado NestJS↔FastAPI, `/api/metrics`, Helmet, CORS, rate limiting y filtro global de errores |
+| F13 | DevSecOps y staging | CI con pruebas, cobertura, Gitleaks, pip-audit, Trivy y quality gate; imágenes GHCR, Compose de staging, health check y rollback |
 
 **Niveles del ranking:** `>= 80` Altamente Recomendado · `>= 60` Recomendado · `>= 40` Aceptable · `< 40` No Favorable.
 
@@ -82,9 +80,10 @@ Los comparadores de precios actuales ordenan el catálogo por un **criterio úni
 - **Adaptación por reglas:** perfiles `economia`, `equilibrado` y `valoraciones` proponen pesos iniciales; `personalizado` permite ajustarlos.
 - **Transparencia:** se omiten criterios sin datos comparables, se renormalizan los pesos disponibles y se muestran los criterios usados/omitidos. No hay entrenamiento ni inferencia de datos personales.
 - **Interfaz adaptable:** diseño responsive con Angular e Ionic para escritorio, tablet y móvil.
-- **Multiplataforma:** la configuración de Capacitor (`capacitor.config.ts`) deja preparado el empaquetado Android; el proyecto nativo no se versiona en esta entrega.
+- **Multiplataforma:** proyecto Android nativo en `frontend/android/`, APK debug generado y login verificado en emulador; PWA instalable con service worker y caché del catálogo.
 - **Sistema tolerante a fallos:** timeouts de 4 s hacia el motor analítico y fallback con advertencia explícita al usuario.
 - **Arquitectura escalable:** servicios desacoplados (NestJS orquesta, FastAPI calcula) que pueden escalar o reemplazarse de forma independiente.
+- **Evaluación:** comparación reproducible contra pesos iguales; `valoraciones` cambia el ganador y el top-3 baja a 1/3 de solapamiento. Detalle en [`docs/evaluacion-adaptacion.md`](docs/evaluacion-adaptacion.md).
 
 ---
 
@@ -109,9 +108,10 @@ NestJS API Gateway (3000)
 | Backend | NestJS 11 + Prisma ORM + class-validator + Swagger |
 | Base de datos | PostgreSQL 16 (Docker + volumen persistente) |
 | Motor analítico | Python 3.12 + FastAPI + MAUT (Min-Max), preparación de fuente y adaptación por reglas |
-| Infraestructura | Docker Compose + Terraform (provider local, staging) |
-| CI/CD | GitHub Actions: lint, tests, auditoría, Gitleaks, quality gate |
-| Calidad | oxlint, flake8, pytest, Jest y Vitest |
+| Infraestructura | Docker Compose (dev/staging) + Terraform (manifiesto local y módulo Docker con red, volumen y PostgreSQL) |
+| CI/CD | GitHub Actions: lint, tests, cobertura, auditoría, Gitleaks, pip-audit, Trivy, integración, deploy y rollback |
+| Calidad | oxlint, flake8, pytest, Jest, Vitest y smoke test de extremo a extremo |
+| Observabilidad | Logs JSON, request ID, métricas, health checks y rate limiting |
 
 ---
 
@@ -119,19 +119,35 @@ NestJS API Gateway (3000)
 
 ```text
 PriceWatch/
-├── .github/workflows/ci.yml     # Pipeline DevSecOps
-├── backend/                     # API NestJS + Prisma
-├── frontend/                    # Cliente Ionic + Angular + Capacitor
-├── python-service/              # Motor MAUT y preparación de fuente en FastAPI
-├── infra/                       # Terraform (staging)
-├── ep2/                         # Plan, decisión de fuente y guía de EP2
-├── .env.example                 # Plantilla de variables (versionada)
-├── .editorconfig
+├── .github/workflows/
+│   ├── ci.yml                  # Pipeline DevSecOps + integración + quality gate
+│   ├── deploy-staging.yml      # Build/push GHCR + deploy SSH + health check
+│   └── rollback-staging.yml    # Rollback manual por tag
+├── backend/                    # API NestJS + Prisma + JWT + observabilidad
+│   ├── prisma/migrations/      # Migraciones versionadas
+│   └── src/auth, common, metrics
+├── frontend/                   # Angular + Ionic + PWA
+│   ├── android/                # Proyecto nativo Capacitor
+│   ├── public/icons/           # Iconos PWA
+│   ├── ngsw-config.json
+│   └── src/app/pages, guards, interceptors, services
+├── python-service/             # FastAPI + MAUT + fuente + evaluación
+│   ├── evaluation/             # Comparación de perfiles y resultados
+│   └── tests/
+├── infra/                      # Terraform: manifiesto staging
+│   └── docker-staging/         # Terraform Docker: red, volumen y PostgreSQL
+├── scripts/                    # smoke-test, deploy, healthcheck, rollback
+├── docs/                       # ADRs, arquitectura, seguridad, observabilidad, prototipo
+├── ep2/                        # Plan y decisión de fuente de EP2
+├── PLAN-EF.md                  # Plan de cierre y checklist
+├── .env.example                # Plantilla de variables (versionada)
+├── docker-compose.yml          # Stack de desarrollo
+├── docker-compose.staging.yml  # Stack de staging con imágenes GHCR
 ├── CONTRIBUTING.md
 └── README.md
 ```
 
-> La base EP1 y el flujo EP2 están implementados. Para la demostración se recomienda reconstruir las imágenes (`docker compose up --build -d`) y verificar los servicios con `docker compose ps`.
+> La solución completa está implementada. Para la demostración se recomienda reconstruir las imágenes (`docker compose up --build -d`) y verificar con `docker compose ps` y `./scripts/smoke-test.sh`.
 
 ---
 
@@ -142,13 +158,14 @@ PriceWatch/
 ```bash
 cp .env.example .env          # editar contraseñas y habilitar la API de muestra localmente
 # En .env: DEMO_PRODUCTS_SOURCE_ENABLED=true
-# Si 3000 está ocupado, usar BACKEND_PORT=3001 y ajustar los curl a ese puerto.
+# El .env.example usa BACKEND_PORT=3001 y FRONTEND_PORT=4200.
 docker compose config -q
 docker compose up --build -d
 docker compose ps
 curl localhost:8000/health
-curl localhost:3000/api/health
-curl localhost:3000/api/products
+curl localhost:3001/api/health
+curl localhost:3001/api/products
+curl localhost:4200/api/health
 ```
 
 El stack levanta cuatro servicios: PostgreSQL, FastAPI, NestJS y Nginx. La interfaz web queda en `http://localhost:4200` (o `FRONTEND_PORT`). Para detener: `docker compose down` (agregar `-v` solo si se quiere borrar la base).
@@ -183,9 +200,14 @@ uvicorn main:app --port 8000 --reload
 cd backend
 npm ci
 npx prisma generate
-npx prisma db push
+npx prisma migrate deploy
 npx prisma db seed
 export DEMO_PRODUCTS_SOURCE_ENABLED=true
+export JWT_SECRET=dev_secret_min_32_chars
+export ADMIN_EMAIL=admin@pricewatch.local
+export ADMIN_PASSWORD=change_me_admin
+export DEMO_USER_EMAIL=user@pricewatch.local
+export DEMO_USER_PASSWORD=change_me_user
 npm run start:dev
 ```
 
@@ -283,12 +305,12 @@ Las credenciales se configuran en `.env` mediante `ADMIN_EMAIL`/`ADMIN_PASSWORD`
 
 | Componente | Comando | Cobertura |
 |---|---|---|
-| python-service | `python -m pytest -q` · `flake8 .` | Extracción (HTTP simulada), limpieza, deduplicación, perfiles, criterios faltantes y fallos |
-| backend | `npm test` · `npm run lint` · `npm run build` · `npm run test:e2e` | Auth JWT, roles, guards, correduras/métricas de fuente, persistencia mockeada, ranking, fallback y contrato HTTP |
-| frontend | `npm test -- --watch=false` · `npm run build` | Login, AuthService, guard, interceptor, consulta acotada, envío del contexto y errores sin sustituir la muestra |
+| python-service | `pytest -q --cov=.` · `flake8 .` | Extracción, limpieza, deduplicación, perfiles, datos faltantes, métricas, request ID y evaluación adaptativa. Cobertura total 90 % (98 % en main.py y 88 % en sources.py). |
+| backend | `npm run test:cov` · `npm run lint` · `npm run build` · `npm run test:e2e` | Auth JWT, roles, guards, request ID, métricas, filtros, fuente, ranking, fallback y contrato HTTP |
+| frontend | `npm run test:coverage` · `npm run build` | Login, catálogo, historial, AuthService, guard, interceptor, formularios reactivos y errores. Cobertura ~40 % de líneas. |
 | infra | `terraform fmt -check` · `terraform validate` | Sintaxis y validez del manifiesto staging |
 
-Verificación local: **30 pruebas Jest**, **5 pruebas e2e**, **27 pruebas Vitest**, **16 pruebas pytest** y `flake8` sin errores. Las pruebas no realizan llamadas externas. FastAPI reporta 95 % de cobertura.
+Verificación local: **30 pruebas Jest**, **6 pruebas e2e**, **27 pruebas Vitest**, **20 pruebas pytest** y `flake8` sin errores. Las pruebas no realizan llamadas externas. FastAPI reporta 90 % de cobertura total; el frontend reporta ~40 % de líneas y el backend genera reporte de cobertura en CI.
 
 **Verificación de autenticación (21/11/2026):** con PostgreSQL temporal se aplicaron las dos migraciones y el seed. Se comprobó login `ADMIN` (200), `/api/auth/me` (200), historial sin token (401), usuario `USER` intentando consultar fuentes (403), evaluación autenticada (201) e historial filtrado por usuario. También se simuló una base creada con `db push`: el baseline marcó la migración inicial como aplicada y conservó los datos existentes.
 
@@ -298,14 +320,23 @@ Verificación local: **30 pruebas Jest**, **5 pruebas e2e**, **27 pruebas Vitest
 
 ## 8. Pipeline DevSecOps
 
-Workflow `.github/workflows/ci.yml` con jobs independientes y un quality gate final:
+Workflow `.github/workflows/ci.yml` con jobs independientes y un **quality gate** final:
 
-1. **frontend:** `npm ci` → formato (`npm run lint`) → build → tests → `npm audit --omit=dev --audit-level=critical`
-2. **backend:** `npm ci` → `prisma generate` → `prisma validate` → `oxlint` → tests → build → `npm audit --omit=dev --audit-level=critical`
-3. **python-service:** instalación de dependencias → `flake8` → `pytest -v`
-4. **terraform:** `terraform fmt -check` → `init` → `validate` → `plan`
-5. **secret-scan:** Gitleaks sobre todo el historial (`fetch-depth: 0`)
-6. **docker-build:** construye las 3 imágenes, solo si los 5 jobs anteriores pasan; si alguno falla, este job queda **skipped** (evidencia de bloqueo).
+1. **frontend:** `npm ci` → Prettier → build PWA → Vitest con cobertura → `npm audit --omit=dev`.
+2. **backend:** `npm ci` → `prisma generate`/`validate` → oxlint → build → Jest con cobertura → e2e → `npm audit`.
+3. **python-service:** instalación → `flake8` → `pytest --cov` → `pip-audit`.
+4. **terraform:** `fmt -check` → `init` → `validate` → `plan` para el manifiesto y para el módulo Docker.
+5. **secret-scan:** Gitleaks sobre todo el historial.
+6. **docker-build:** construye las 3 imágenes y las escanea con **Trivy** (falla ante vulnerabilidades críticas).
+7. **integration:** levanta el stack con Docker Compose y ejecuta `scripts/smoke-test.sh` sobre el flujo real.
+8. **quality-gate:** solo pasa si todos los controles anteriores pasan.
+
+Workflows adicionales:
+
+- `.github/workflows/deploy-staging.yml`: construye y publica imágenes en GHCR, despliega por SSH, ejecuta health check y hace rollback si falla.
+- `.github/workflows/rollback-staging.yml`: rollback manual por tag.
+
+Los secretos se configuran en GitHub Actions Secrets y la configuración no sensible en Variables. El pipeline no imprime credenciales.
 
 ---
 
@@ -388,17 +419,90 @@ Probado en emulador Android: login contra el backend local y navegación al eval
 
 ![Evaluador en Android](docs/evidencias/android-ionic-evaluator.png)
 
-No se mantiene un enlace Figma separado para esta entrega.
+### Prototipo y Figma
+
+El prototipo navegable funcional es la aplicación en `http://localhost:4200`. Además, `docs/prototipo/index.html` permite recorrer las capturas de login, evaluador, catálogo e historial. Las instrucciones para importarlas a Figma están en [`docs/prototipo/README.md`](docs/prototipo/README.md).
+
+**Figma:** pendiente de crear el archivo con una cuenta del equipo y pegar el enlace público. El repositorio ya incluye los frames y el guion de importación.
 
 ---
 
-## 11. Documentación adicional
+## 11. Despliegue en staging
 
-- `ep2/PLAN-EP2.md` — requisitos, fuente de demostración, trazabilidad, adaptación y criterios de evaluación.
-- `ep2/ADR-003-fuente-y-adaptacion.md` — decisión de fuente y alcance adaptativo.
-- `ep2/GUIA-DEFENSA.md` — flujo, decisiones, límites y pasos de demostración.
+La solución incluye un stack de staging reproducible:
+
+- `docker-compose.staging.yml` con imágenes GHCR, red interna, volumen persistente, health checks y logs rotados.
+- `.github/workflows/deploy-staging.yml`: build/push a GHCR, deploy por SSH, health check y rollback automático.
+- `.github/workflows/rollback-staging.yml`: rollback manual por tag.
+- `scripts/deploy.sh`, `scripts/healthcheck.sh`, `scripts/rollback.sh`.
+- `scripts/smoke-test.sh`: flujo completo login → catálogo → ranking → historial → métricas.
+
+Instrucciones, variables de GitHub y rollback en [`docs/despliegue.md`](docs/despliegue.md). El compose de staging se probó localmente con imágenes `local/*:test` y el smoke test pasó. La URL pública queda pendiente de configurar un VPS/dominio y los secretos `STAGING_*`.
+
+---
+
+## 12. Evaluación de la adaptación
+
+Se comparó el ranking con una base de pesos iguales:
+
+| Perfil | Ganador | Top-3 con base | Spearman |
+|---|---|---:|---:|
+| base (0,25 cada uno) | Acer Aspire 3 | 3/3 | 1,0000 |
+| economia | Acer Aspire 3 | 2/3 | 0,9524 |
+| equilibrado | Acer Aspire 3 | 2/3 | 0,9524 |
+| valoraciones | MacBook Air M2 | 1/3 | 0,2143 |
+
+- La prueba de **marca ciega** confirmó puntajes idénticos al cambiar solo la marca.
+- Con datos faltantes, `specs` se omite para toda la muestra y los pesos se renormalizan.
+- Script reproducible: `python-service/evaluation/compare_profiles.py`.
+- Resultados y limitaciones: [`docs/evaluacion-adaptacion.md`](docs/evaluacion-adaptacion.md).
+
+---
+
+## 13. Demo y defensa
+
+Guion completo en [`docs/guia-demo-defensa.md`](docs/guia-demo-defensa.md). Los 8 escenarios son:
+
+1. Funcionamiento normal: login, catálogo, evaluación, historial.
+2. Adaptación: cambio de perfil y ganador.
+3. Información web: consulta DummyJSON, trazabilidad y métricas.
+4. Pipeline: GitHub Actions con tests, Trivy y quality gate.
+5. Pruebas: Jest, Vitest, pytest y cobertura.
+6. Seguridad: 401 sin token, 403 para `USER`, Gitleaks/Trivy.
+7. Observabilidad: health, logs JSON, request ID y `/api/metrics`.
+8. Error controlado: FastAPI caído y fallback; PostgreSQL caído y health 503.
+
+La defensa individual debe explicar arquitectura, flujo, auth, base de datos, Docker, CI, Terraform, pruebas, adaptación y límites. Cada integrante debe poder explicar el código que aparece en el repositorio.
+
+---
+
+## 14. Licencia, autoría y responsabilidades
+
+- **Autor:** Lur Lopez Fraile.
+- **Roles asumidos:** arquitectura, frontend, backend, persistencia, servicio Python, DevSecOps, seguridad, pruebas, documentación y UX.
+- **Licencia:** MIT, ver [`LICENSE`](LICENSE).
+- **Uso de IA:** declarado en la sección 16 y en el README de cada entrega.
+
+Si el proyecto se presenta en equipo, reemplazar esta sección por la distribución real de responsabilidades y registrar la participación de cada integrante.
+
+---
+
+## 15. Documentación adicional
+
+- `docs/MEMORIA-EF.md` — memoria técnica completa de la entrega final (también en `.docx`).
+- `docs/arquitectura-final.md` — arquitectura, diagramas y flujo de datos final.
+- `docs/modelo-datos-final.md` — modelo conceptual/lógico y migraciones.
+- `docs/seguridad.md` — STRIDE, roles, secretos, privacidad y ética.
+- `docs/observabilidad.md` — logs, request ID, métricas y health checks.
+- `docs/despliegue.md` — staging, GHCR, deploy, health check y rollback.
+- `docs/evaluacion-adaptacion.md` — comparación de perfiles, métricas y límites.
+- `docs/guia-demo-defensa.md` — 8 escenarios de demo y preguntas de defensa.
+- `docs/prototipo/` — capturas y visor HTML para Figma.
+- `docs/adr/` — ADR-001 a ADR-007.
+- `ep2/PLAN-EP2.md`, `ep2/ADR-003-fuente-y-adaptacion.md`, `ep2/GUIA-DEFENSA.md` — antecedentes de EP2.
 - `CONTRIBUTING.md` — GitFlow, commits convencionales y verificación local.
+- `LICENSE` — licencia MIT.
 
-## 12. Declaración de uso de herramientas de IA
+## 16. Declaración de uso de herramientas de IA
 
 Se utilizó ChatGPT/OpenCode como apoyo para interpretar requisitos, proponer e implementar cambios, preparar pruebas y documentar decisiones. La revisión, autoría y responsabilidad del contenido entregado corresponden al estudiante, conforme a las instrucciones de integridad académica de la asignatura.

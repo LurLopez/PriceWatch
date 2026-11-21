@@ -7,19 +7,31 @@
 
 ---
 
-## 1. Veredicto rápido
+## 0. Progreso de implementación
 
-- La **base técnica es sólida**: NestJS + FastAPI + PostgreSQL + Docker Compose + CI + 41 pruebas + datos trazables.
-- La cobertura del enunciado está en torno al **65–70 %**.
-- **Sí hay bastante trabajo de cierre**: unas **30–45 h** para aspirar a un nivel “logrado/sobresaliente”; un **mínimo viable** de 20–25 h.
-- Lo más caro ya está hecho (arquitectura, motor MAUT, persistencia, contenedores, pipeline base). Lo que falta es la **capa de cumplimiento visible**: PWA/Android, autenticación real, staging, observabilidad, escaneos de seguridad, pruebas de integración, Figma y documentación versionada.
-- Si la entrega es en 2 días y trabajas solo, **vas justo**. Hay que priorizar por peso de rúbrica y aceptar “logrado” en algunos criterios.
-
-> Estimación gruesa, no oficial: hoy el proyecto podría estar en ~4,5–5,0; con los bloques 1–4 y 6 se podría aspirar a ~5,8–6,2. La nota final depende de la rúbrica y de la defensa individual.
+- [x] Paso 1: autenticación JWT, roles, guards, login, migraciones y baseline.
+- [x] Paso 2: PWA instalable y APK Android verificado en emulador.
+- [x] Paso 3: Ionic real, formularios reactivos y accesibilidad básica.
+- [x] Paso 4: observabilidad (logs JSON, request ID, métricas), Helmet, throttling y hardening.
+- [x] Paso 5: pipeline DevSecOps, integración, Trivy, staging con deploy/rollback y Terraform Docker.
+- [x] Paso 6: evaluación de la adaptación, prototipo navegable y memoria técnica.
+- [ ] Paso 7: pegar el enlace público de Figma (requiere cuenta del equipo).
+- [ ] Paso 8: configurar VPS/dominio y secretos `STAGING_*` para URL pública.
+- [x] Tag/release `v1.0.0-ef` (ver `CHANGELOG.md`).
 
 ---
 
+## 1. Estado final
+
+- La implementación está **completa** en código, pruebas, Docker, CI, observabilidad, Terraform y documentación.
+- **83 pruebas automatizadas**: 30 Jest + 6 e2e + 27 Vitest + 20 pytest, más el smoke test de integración.
+- PWA, APK Android, autenticación JWT, roles, staging compose, rollback y evaluación adaptativa verificados.
+- Pendientes **externos al repositorio**: crear el archivo Figma y pegar el enlace; configurar un VPS/dominio y los secretos `STAGING_*` para una URL pública.
+- La entrega puede demostrarse en local con Docker Compose y en Android con el emulador.
+
 ## 2. Brechas obligatorias (checklist)
+
+> Nota: estas tablas describen el **análisis inicial** del 21/11/2026. El estado final implementado está en la sección 1 y en `docs/MEMORIA-EF.md`.
 
 ### 2.1 Frontend multiplataforma — 10 %
 

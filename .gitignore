@@ -29,6 +29,7 @@ coverage/
 .env
 .env.*
 !.env.example
+!.env.staging.example
 !**/.env.example
 *.pem
 *.key
@@ -44,7 +45,6 @@ postgres_data/
 **/.terraform/
 *.tfstate
 *.tfstate.*
-.terraform.lock.hcl
 infra/generated/
 
 # IDEs y SO
@@ -58,3 +58,6 @@ Thumbs.db
 # Cobertura Python
 .coverage
 htmlcov/
+
+# Despliegue
+.last_image_tag

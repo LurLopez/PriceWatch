@@ -1,0 +1,7 @@
+project_name     = "pricewatch"
+environment      = "staging"
+postgres_db      = "pricewatch_db"
+postgres_user    = "pricewatch_admin"
+postgres_password = "CAMBIA_ESTA_CLAVE"
+network_name     = "pricewatch_staging_network"
+volume_name      = "pricewatch_staging_postgres_data"

@@ -1,0 +1,37 @@
+name: Rollback staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Tag de la imagen a restaurar (por ejemplo, un SHA anterior)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    name: Rollback manual en staging
+    runs-on: ubuntu-latest
+    if: ${{ vars.STAGING_ENABLED == 'true' }}
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+    steps:
+      - name: Ejecutar rollback por SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ vars.STAGING_HOST }}
+          username: ${{ vars.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ vars.STAGING_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -e
+            cd "${{ vars.STAGING_PATH }}"
+            if [ -n "${{ secrets.GHCR_TOKEN }}" ]; then
+              echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            fi
+            ./scripts/rollback.sh "${{ inputs.image_tag }}"

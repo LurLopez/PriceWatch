@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PriceWatch — Prototipo EF</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --blue: #2563eb;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --line: #e2e8f0;
+        --bg: #f8fafc;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+      header {
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+        padding: 1rem 1.25rem;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+      header h1 { margin: 0; font-size: 1.2rem; }
+      header p { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.85rem; }
+      nav {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        padding: 0.75rem 1.25rem;
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+      }
+      nav a {
+        text-decoration: none;
+        color: var(--blue);
+        border: 1px solid #bfdbfe;
+        background: #eff6ff;
+        border-radius: 6px;
+        padding: 0.35rem 0.6rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      nav a.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+      main { max-width: 1100px; margin: 0 auto; padding: 1rem; }
+      .screen { display: none; }
+      .screen.active { display: block; }
+      .frame {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        overflow: hidden;
+      }
+      .frame img { display: block; width: 100%; height: auto; }
+      .hint {
+        margin: 0.75rem 0 1.25rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>PriceWatch — Prototipo de interfaz EF</h1>
+      <p>
+        Referencia visual para Figma. Las pantallas reales están implementadas en
+        Angular + Ionic; estas capturas sirven para el prototipo navegable.
+      </p>
+    </header>
+    <nav id="nav">
+      <a href="#login">Login</a>
+      <a href="#evaluator">Evaluador</a>
+      <a href="#catalog">Catálogo</a>
+      <a href="#history">Historial</a>
+      <a href="#mobile">Móvil</a>
+    </nav>
+    <main>
+      <p class="hint">
+        Flujo recomendado: Login → Evaluador → Catálogo → Historial. En Figma se
+        pueden enlazar los frames con “Prototype → Navigate to”.
+      </p>
+
+      <section class="screen" id="login">
+        <div class="frame"><img src="login.png" alt="Pantalla de login" /></div>
+      </section>
+      <section class="screen" id="evaluator">
+        <div class="frame"><img src="evaluator.png" alt="Pantalla del evaluador" /></div>
+      </section>
+      <section class="screen" id="catalog">
+        <div class="frame"><img src="catalog.png" alt="Pantalla del catálogo" /></div>
+      </section>
+      <section class="screen" id="history">
+        <div class="frame"><img src="history.png" alt="Pantalla del historial" /></div>
+      </section>
+      <section class="screen" id="mobile">
+        <div class="frame" style="max-width: 420px; margin: 0 auto">
+          <img src="evaluator-mobile.png" alt="Evaluador en móvil" />
+        </div>
+      </section>
+    </main>
+    <script>
+      const screens = [...document.querySelectorAll('.screen')];
+      const links = [...document.querySelectorAll('#nav a')];
+
+      function show(id) {
+        const target = screens.some((screen) => screen.id === id) ? id : 'login';
+        screens.forEach((screen) =>
+          screen.classList.toggle('active', screen.id === target),
+        );
+        links.forEach((link) =>
+          link.classList.toggle('active', link.hash === `#${target}`),
+        );
+      }
+
+      window.addEventListener('hashchange', () =>
+        show(location.hash.slice(1)),
+      );
+      show(location.hash.slice(1) || 'login');
+    </script>
+  </body>
+</html>

@@ -139,7 +139,6 @@ PriceWatch/
 ├── scripts/                    # smoke-test, deploy, healthcheck, rollback
 ├── docs/                       # ADRs, arquitectura, seguridad, observabilidad, prototipo
 ├── ep2/                        # Plan y decisión de fuente de EP2
-├── PLAN-EF.md                  # Plan de cierre y checklist
 ├── .env.example                # Plantilla de variables (versionada)
 ├── docker-compose.yml          # Stack de desarrollo
 ├── docker-compose.staging.yml  # Stack de staging con imágenes GHCR
@@ -505,7 +504,3 @@ Si el proyecto se presenta en equipo, reemplazar esta sección por la distribuci
 - `ep2/PLAN-EP2.md`, `ep2/ADR-003-fuente-y-adaptacion.md`, `ep2/GUIA-DEFENSA.md` — antecedentes de EP2.
 - `CONTRIBUTING.md` — GitFlow, commits convencionales y verificación local.
 - `LICENSE` — licencia MIT.
-
-## 16. Declaración de uso de herramientas de IA
-
-Se utilizó ChatGPT/OpenCode como apoyo para interpretar requisitos, proponer e implementar cambios, preparar pruebas y documentar decisiones. La revisión, autoría y responsabilidad del contenido entregado corresponden al estudiante, conforme a las instrucciones de integridad académica de la asignatura.

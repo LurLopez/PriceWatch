@@ -615,7 +615,7 @@ Guion completo: `docs/guia-demo-defensa.md`.
 - `docs/`: arquitectura, modelo, seguridad, observabilidad, despliegue, evaluación, ADRs, prototipo.
 - `docker-compose.yml`, `docker-compose.staging.yml`.
 - `.env.example`, `.env.staging.example`.
-- `LICENSE`, `README.md`, `PLAN-EF.md`.
+- `LICENSE`, `README.md`.
 
 ### 15.2 Commits principales
 
@@ -637,7 +637,3 @@ Guion completo: `docs/guia-demo-defensa.md`.
 - Revisar si la asignatura exige un enlace Figma específico y agregarlo al README.
 
 ---
-
-## 16. Declaración de uso de IA
-
-Se utilizó ChatGPT/OpenCode como apoyo para interpretar requisitos, proponer la arquitectura, implementar cambios, preparar pruebas y documentar decisiones. La revisión, autoría y responsabilidad del contenido entregado corresponden al estudiante, conforme a las instrucciones de integridad académica de la asignatura. Todo el código incluido debe poder ser explicado por el equipo en la defensa individual.

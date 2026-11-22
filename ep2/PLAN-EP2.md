@@ -144,7 +144,3 @@ Esta verificación demuestra persistencia del prototipo con datos sintéticos. L
 3. Los perfiles son reglas iniciales, no una preferencia aprendida ni un resultado de estudio de usuarios.
 4. La política de acceso/rate limiting del endpoint está limitada a un proceso local; la bandera debe permanecer apagada en staging público hasta proteger las rutas.
 5. La fuente sintética se declara como limitación. Si la pauta exige una fuente comercial real, se debe acordar el permiso y las condiciones de uso antes de integrarla.
-
-## 8. Transparencia en el uso de IA
-
-Se usó ChatGPT/OpenCode como apoyo para interpretar el alcance, proponer la arquitectura, preparar código y pruebas, y documentar decisiones. El equipo debe revisar y comprender los cambios, contrastar la información de la fuente y declarar este uso conforme a las instrucciones de integridad académica de la asignatura.

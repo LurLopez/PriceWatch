@@ -45,7 +45,7 @@ interface DemoSourceResponse {
 }
 
 const SOURCE_NAME = 'dummyjson';
-const SEARCH_COOLDOWN_MS = 15_000;
+const SEARCH_COOLDOWN_MS = 5_000;
 const MAX_RESPONSE_BYTES = 1_000_000;
 
 @Injectable()
@@ -84,7 +84,7 @@ export class SourcesService {
       now - this.lastRequestAt < SEARCH_COOLDOWN_MS
     ) {
       throw new HttpException(
-        'Espera 15 segundos antes de volver a consultar la fuente.',
+        'Espera 5 segundos antes de volver a consultar la fuente.',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }

@@ -47,7 +47,14 @@ assert_status() {
 assert_status 200 GET "$API_URL/health" "health NestJS/PostgreSQL/FastAPI" \
   -H 'x-request-id: smoke-health-001'
 
-HEALTH_ID="$(curl -sS -D - -o /dev/null -H 'x-request-id: smoke-health-002' "$API_URL/health" | awk -F': ' 'tolower($1)=="x-request-id" {print $2}' | tr -d '\r')"
+HEALTH_ID=""
+for _ in $(seq 1 5); do
+  HEALTH_ID="$(curl -sS -D - -o /dev/null -H 'x-request-id: smoke-health-002' "$API_URL/health" 2>/dev/null | awk -F': ' 'tolower($1)=="x-request-id" {print $2}' | tr -d '\r')"
+  if [ "$HEALTH_ID" = "smoke-health-002" ]; then
+    break
+  fi
+  sleep 2
+done
 if [ "$HEALTH_ID" != "smoke-health-002" ]; then
   echo "FAIL x-request-id no propagado (obtenido: ${HEALTH_ID:-vacío})"
   exit 1

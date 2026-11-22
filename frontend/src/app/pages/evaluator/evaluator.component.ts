@@ -199,6 +199,11 @@ type ContextProfile = 'economia' | 'equilibrado' | 'valoraciones' | 'personaliza
             </div>
           </div>
 
+          <p class="weights-note" [class.weights-warning]="totalWeightPercent !== 100">
+            Suma actual: <b>{{ totalWeightPercent }}%</b>. No es obligatorio que sume 100 %: el
+            motor normaliza los pesos y muestra los pesos efectivos al calcular.
+          </p>
+
           <div class="btn-container">
             <ion-button
               type="button"
@@ -462,6 +467,16 @@ type ContextProfile = 'economia' | 'equilibrado' | 'valoraciones' | 'personaliza
       input[type='range'] {
         width: 100%;
         cursor: pointer;
+      }
+
+      .weights-note {
+        color: #475569;
+        font-size: 0.85rem;
+        margin: 0.75rem 0 0.25rem;
+      }
+
+      .weights-warning {
+        color: #b45309;
       }
 
       .btn-container {
@@ -737,6 +752,16 @@ export class EvaluatorComponent implements OnInit {
             'No se pudo evaluar esta muestra. No se sustituyó por el catálogo local.';
         },
       });
+  }
+
+  get totalWeightPercent(): number {
+    return Math.round(
+      (this.weights.weight_price +
+        this.weights.weight_quality +
+        this.weights.weight_stock +
+        this.weights.weight_specs) *
+        100,
+    );
   }
 
   getPercent(val: number): number {

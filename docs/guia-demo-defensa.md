@@ -36,7 +36,7 @@ docker compose ps
 1. En el evaluador, cambiar de **Equilibrio** a **Valoraciones**.
 2. Mostrar que cambia el ganador (MacBook Air M2 en el dataset de evaluación; el catálogo local puede variar).
 3. Cambiar a **Ahorro** y mostrar que vuelve a priorizar precio.
-4. Mover un slider y mostrar que el perfil pasa a **Personalizado** y los pesos se renormalizan.
+4. Mover un slider y mostrar que el perfil pasa a **Personalizado**, que la suma puede no ser 100 % y que la app la normaliza al calcular.
 5. Explicar la prueba de marca ciega y los resultados de `docs/evaluacion-adaptacion.md`.
 
 ## 4. Escenario 3 — Información web

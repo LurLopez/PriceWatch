@@ -78,7 +78,7 @@ Los comparadores de precios actuales ordenan el catálogo por un **criterio úni
 ### 1.7 Capacidad adaptativa
 
 - **Adaptación por reglas:** perfiles `economia`, `equilibrado` y `valoraciones` proponen pesos iniciales; `personalizado` permite ajustarlos.
-- **Transparencia:** se omiten criterios sin datos comparables, se renormalizan los pesos disponibles y se muestran los criterios usados/omitidos. No hay entrenamiento ni inferencia de datos personales.
+- **Transparencia:** los sliders son pesos relativos (no es obligatorio que sumen 100 %); el motor los normaliza, omite criterios sin datos comparables y muestra la suma actual, los pesos efectivos y los criterios usados/omitidos. No hay entrenamiento ni inferencia de datos personales.
 - **Interfaz adaptable:** diseño responsive con Angular e Ionic para escritorio, tablet y móvil.
 - **Multiplataforma:** proyecto Android nativo en `frontend/android/`, APK debug generado y login verificado en emulador; PWA instalable con service worker y caché del catálogo.
 - **Sistema tolerante a fallos:** timeouts de 4 s hacia el motor analítico y fallback con advertencia explícita al usuario.

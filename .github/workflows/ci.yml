@@ -219,7 +219,7 @@ jobs:
         run: docker compose build
 
       - name: Escanear imagen del backend (vulnerabilidades críticas)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: pricewatch-backend:latest
           format: table
@@ -229,7 +229,7 @@ jobs:
           vuln-type: os,library
 
       - name: Escanear imagen del frontend (vulnerabilidades críticas)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: pricewatch-frontend:latest
           format: table
@@ -239,7 +239,7 @@ jobs:
           vuln-type: os,library
 
       - name: Escanear imagen del motor Python (vulnerabilidades críticas)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: pricewatch-python-service:latest
           format: table

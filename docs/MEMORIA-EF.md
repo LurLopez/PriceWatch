@@ -24,7 +24,7 @@ La solución completa incluye:
 - Terraform para el manifiesto de staging y un módulo Docker con red, volumen y PostgreSQL.
 - Documentación, ADRs, prototipo navegable y guion de demo/defensa.
 
-**Estado de verificación:** 30 pruebas Jest, 6 e2e, 27 Vitest y 20 pytest aprobadas; cobertura Python 90 %, backend ~50 % de líneas y frontend ~45 % de líneas. El stack de desarrollo y el compose de staging se probaron con Docker; el smoke test completo pasó. La APK se instaló y se verificó el login en un emulador Android.
+**Estado de verificación:** 31 pruebas Jest, 6 e2e, 28 Vitest y 22 pytest aprobadas; cobertura Python 90 %, backend ~50 % de líneas y frontend ~45 % de líneas. El stack de desarrollo y el compose de staging se probaron con Docker; el smoke test completo pasó. La APK se instaló y se verificó el login en un emulador Android.
 
 ---
 
@@ -108,7 +108,7 @@ Angular → POST /api/ranking/evaluate
 ```text
 Angular (ADMIN) → POST /api/sources/demo-products/search
   → NestJS valida DTO, throttle y bandera
-  → FastAPI consulta DummyJSON (timeout 10 s, sin redirecciones)
+  → FastAPI consulta DummyJSON por categoría (timeout 10 s, sin redirecciones)
   → normaliza, valida, deduplica y calcula SHA-256
   → NestJS valida contrato y persiste SourceRun + SourceListing
   → respuesta con run_id, procedencia y métricas
@@ -199,7 +199,9 @@ frontend/src/app/
 
 ![Login web](docs/evidencias/pwa-login.png)
 
-![Evaluador web](docs/evidencias/pwa-evaluator.png)
+![Evaluador web con combobox de categorías](docs/evidencias/pwa-evaluator.png)
+
+![Ranking web con columna de categoría](docs/evidencias/pwa-ranking.png)
 
 ![Catálogo web](docs/evidencias/pwa-catalog.png)
 
@@ -288,7 +290,7 @@ AppModule
 ### 5.2 Funciones
 
 - `POST /evaluate`: MAUT con normalización Min-Max; devuelve ranking, puntajes, niveles, desglose, explicación, criterios activos/omitidos y pesos efectivos.
-- `POST /sources/demo-products/search`: consulta DummyJSON, valida, normaliza, deduplica, calcula SHA-256 y devuelve métricas.
+- `POST /sources/demo-products/search`: consulta DummyJSON por categoría (`/products/category/{slug}`), valida, normaliza, deduplica, calcula SHA-256 y devuelve métricas.
 - `GET /health`: estado del motor.
 - `GET /metrics`: métricas internas (total, errores, latencia, status counts).
 - Middleware de request ID y logs JSON.
@@ -356,7 +358,7 @@ prisma/migrations/20261121001000_auth_users
 
 ## 7. Obtención de información web y ética
 
-- Fuente: DummyJSON Products Search.
+- Fuente: DummyJSON Products. La interfaz ofrece un **combobox de categorías** (laptops, smartphones, fragancias, etc.) y el backend consulta `/products/category/{slug}`.
 - Consulta manual, una página, máximo 20 registros, timeout 10 s, sin redirecciones, límite de respuesta.
 - Se descartan imágenes, descripciones, reseñas y datos de personas.
 - Se conservan ID, título, categoría, marca, precio, rating, disponibilidad, specs permitidas, URL, fecha y hash.
@@ -476,10 +478,10 @@ Jobs de `.github/workflows/ci.yml`:
 
 | Nivel | Herramienta | Cantidad | Evidencia |
 |---|---|---:|---|
-| Backend unitario | Jest | 30 | `npm run test:cov` |
+| Backend unitario | Jest | 31 | `npm run test:cov` |
 | Backend e2e | Jest + Supertest | 6 | `npm run test:e2e` |
-| Frontend | Vitest | 27 | `npm run test:coverage` |
-| Python | pytest | 20 | `pytest --cov=.` |
+| Frontend | Vitest | 28 | `npm run test:coverage` |
+| Python | pytest | 22 | `pytest --cov=.` |
 | Integración | Docker Compose + smoke | 12 comprobaciones | `scripts/smoke-test.sh` |
 | Terraform | fmt/validate/plan | 2 módulos | CI y local |
 | Imágenes | Trivy | 3 imágenes | CI y local |
@@ -556,7 +558,7 @@ cd python-service && pytest -q --cov=.
 
 1. Login, catálogo, evaluación, historial.
 2. Cambio de perfil y ganador.
-3. Consulta DummyJSON, procedencia y métricas.
+3. Selecciona una categoría de DummyJSON, consulta, procedencia y métricas.
 4. Pipeline CI con tests, Trivy y quality gate.
 5. Pruebas y cobertura.
 6. 401/403/429, Helmet y Gitleaks/Trivy.

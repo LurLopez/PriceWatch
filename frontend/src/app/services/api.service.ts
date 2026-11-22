@@ -35,10 +35,15 @@ export class ApiService {
       .pipe(catchError(() => of(this.getFallbackProducts())));
   }
 
-  searchDemoProducts(query: string, limit = 10): Observable<SourceSearchResponse> {
+  searchDemoProducts(
+    query: string,
+    limit = 10,
+    category?: string,
+  ): Observable<SourceSearchResponse> {
     return this.http
       .post<SourceSearchResponse>(`${this.baseUrl}/sources/demo-products/search`, {
         query,
+        ...(category ? { category } : {}),
         limit,
         acknowledged: true,
       })

@@ -20,6 +20,7 @@ Todas las versiones relevantes del proyecto. Formato basado en Keep a Changelog.
 - Staging con GHCR, Docker Compose, deploy por SSH, health check y rollback.
 - Terraform Docker para red, volumen y PostgreSQL.
 - Evaluación adaptativa contra versión base, prueba de marca ciega y datos faltantes.
+- Combobox de categorías DummyJSON y endpoint `/products/category/{slug}`.
 - Prototipo navegable en HTML, capturas para Figma y guion de demo/defensa.
 - Memoria técnica en Markdown y Word (`docs/Memoria_ProyectoFinal_PriceWatch.docx`).
 - ADR-003 a ADR-007 y documentación de arquitectura, modelo de datos, seguridad, observabilidad y despliegue.
@@ -55,9 +56,9 @@ Todas las versiones relevantes del proyecto. Formato basado en Keep a Changelog.
 
 ### Pruebas
 
-- 30 Jest + 6 e2e en backend.
-- 27 Vitest en frontend.
-- 20 pytest en Python.
+- 31 Jest + 6 e2e en backend.
+- 28 Vitest en frontend.
+- 22 pytest en Python.
 - Smoke test de integración con 12 comprobaciones.
 - Terraform `fmt`/`validate`/`plan` para dos módulos.
 

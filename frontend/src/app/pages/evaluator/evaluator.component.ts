@@ -4,7 +4,6 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import {
   IonBadge,
   IonButton,
-  IonInput,
   IonNote,
   IonRange,
   IonSelect,
@@ -30,7 +29,6 @@ type ContextProfile = 'economia' | 'equilibrado' | 'valoraciones' | 'personaliza
     ReactiveFormsModule,
     IonBadge,
     IonButton,
-    IonInput,
     IonNote,
     IonRange,
     IonSelect,
@@ -51,22 +49,25 @@ type ContextProfile = 'economia' | 'equilibrado' | 'valoraciones' | 'personaliza
             DummyJSON es una API de datos de ejemplo para prototipos. Sus precios, valoraciones y
             disponibilidad no representan el mercado real.
           </p>
-          <ion-input
-            id="source-query"
-            type="search"
+          <ion-select
+            id="source-category"
             fill="outline"
-            formControlName="sourceQuery"
-            label="Buscar en el catálogo de demostración"
+            formControlName="sourceCategory"
+            label="Categoría de la muestra"
             labelPlacement="stacked"
-            placeholder="Por ejemplo: laptop"
+            interface="popover"
             [disabled]="sourceLoading"
-          ></ion-input>
+          >
+            @for (category of sourceCategories; track category.slug) {
+              <ion-select-option [value]="category.slug">{{ category.label }}</ion-select-option>
+            }
+          </ion-select>
           <div class="source-controls">
             <ion-button
               type="button"
               size="small"
               (click)="searchSource()"
-              [disabled]="sourceLoading || loading || sourceQueryControl.value.trim().length < 2"
+              [disabled]="sourceLoading || loading || !sourceCategoryControl.value"
             >
               @if (sourceLoading) {
                 <ion-spinner name="crescent" slot="start"></ion-spinner>
@@ -270,6 +271,9 @@ type ContextProfile = 'economia' | 'equilibrado' | 'valoraciones' | 'personaliza
                   <tr>
                     <th>#</th>
                     <th>Producto</th>
+                    @if (activeSourceRun) {
+                      <th>Categoría</th>
+                    }
                     <th>Precio</th>
                     <th>{{ activeSourceRun ? 'Valoración de muestra' : 'Calidad' }}</th>
                     <th>{{ activeSourceRun ? 'Disponibilidad de muestra' : 'Stock' }}</th>
@@ -288,6 +292,9 @@ type ContextProfile = 'economia' | 'equilibrado' | 'valoraciones' | 'personaliza
                         <b>{{ item.rank_position }}</b>
                       </td>
                       <td>{{ item.name }} ({{ item.brand }})</td>
+                      @if (activeSourceRun) {
+                        <td>{{ item.category }}</td>
+                      }
                       <td>{{ formatProductPrice(item) }}</td>
                       <td>
                         {{
@@ -517,7 +524,7 @@ type ContextProfile = 'economia' | 'equilibrado' | 'valoraciones' | 'personaliza
 
       .ranking-table {
         width: 100%;
-        min-width: 720px;
+        min-width: 820px;
         border-collapse: collapse;
         margin-top: 0.75rem;
         font-size: 0.9rem;
@@ -566,6 +573,33 @@ export class EvaluatorComponent implements OnInit {
     },
   };
 
+  readonly sourceCategories = [
+    { slug: 'laptops', label: 'Laptops' },
+    { slug: 'smartphones', label: 'Smartphones' },
+    { slug: 'tablets', label: 'Tablets' },
+    { slug: 'mobile-accessories', label: 'Accesorios móviles' },
+    { slug: 'fragrances', label: 'Fragancias' },
+    { slug: 'beauty', label: 'Belleza' },
+    { slug: 'skin-care', label: 'Cuidado de la piel' },
+    { slug: 'mens-shirts', label: 'Camisas de hombre' },
+    { slug: 'mens-shoes', label: 'Zapatos de hombre' },
+    { slug: 'mens-watches', label: 'Relojes de hombre' },
+    { slug: 'womens-dresses', label: 'Vestidos de mujer' },
+    { slug: 'womens-shoes', label: 'Zapatos de mujer' },
+    { slug: 'womens-bags', label: 'Bolsos de mujer' },
+    { slug: 'womens-jewellery', label: 'Joyería de mujer' },
+    { slug: 'womens-watches', label: 'Relojes de mujer' },
+    { slug: 'sunglasses', label: 'Gafas de sol' },
+    { slug: 'tops', label: 'Tops' },
+    { slug: 'furniture', label: 'Muebles' },
+    { slug: 'home-decoration', label: 'Decoración del hogar' },
+    { slug: 'kitchen-accessories', label: 'Accesorios de cocina' },
+    { slug: 'groceries', label: 'Comestibles' },
+    { slug: 'sports-accessories', label: 'Accesorios deportivos' },
+    { slug: 'motorcycle', label: 'Motos' },
+    { slug: 'vehicle', label: 'Vehículos' },
+  ];
+
   weights: WeightVector = {
     weight_price: 0.4,
     weight_quality: 0.3,
@@ -586,8 +620,8 @@ export class EvaluatorComponent implements OnInit {
     return this.profiles[this.contextProfile].description;
   }
 
-  get sourceQueryControl() {
-    return this.evaluatorForm.controls['sourceQuery'];
+  get sourceCategoryControl() {
+    return this.evaluatorForm.controls['sourceCategory'];
   }
 
   constructor(
@@ -595,10 +629,7 @@ export class EvaluatorComponent implements OnInit {
     private readonly formBuilder: FormBuilder,
   ) {
     this.evaluatorForm = this.formBuilder.group({
-      sourceQuery: [
-        'laptop',
-        [Validators.required, Validators.minLength(2), Validators.maxLength(80)],
-      ],
+      sourceCategory: ['laptops', Validators.required],
       contextProfile: ['equilibrado', Validators.required],
       weight_price: [40, [Validators.min(0), Validators.max(100)]],
       weight_quality: [30, [Validators.min(0), Validators.max(100)]],
@@ -655,13 +686,14 @@ export class EvaluatorComponent implements OnInit {
   }
 
   searchSource(): void {
-    const query = String(this.evaluatorForm.controls['sourceQuery'].value ?? '').trim();
-    if (query.length < 2 || this.sourceLoading) return;
+    const slug = String(this.evaluatorForm.controls['sourceCategory'].value ?? '').trim();
+    const category = this.sourceCategories.find((item) => item.slug === slug);
+    if (!category || this.sourceLoading) return;
 
     this.sourceLoading = true;
     this.sourceMessage = '';
     this.evaluation = null;
-    this.apiService.searchDemoProducts(query, 10).subscribe({
+    this.apiService.searchDemoProducts(category.label, 10, category.slug).subscribe({
       next: (run) => {
         this.activeSourceRun = run;
         this.sourceLoading = false;

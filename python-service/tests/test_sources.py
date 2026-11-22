@@ -232,3 +232,40 @@ def test_custom_profile_with_only_missing_criteria_fails():
     )
 
     assert response.status_code == 400
+
+
+def test_search_by_category_uses_category_endpoint(monkeypatch):
+    monkeypatch.setenv("DEMO_PRODUCTS_SOURCE_ENABLED", "true")
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        assert request.url.host == "dummyjson.com"
+        assert request.url.path == "/products/category/smartphones"
+        assert "q" not in request.url.params
+        assert request.url.params["limit"] == "5"
+        return httpx.Response(200, json={"products": [sample_product()]})
+
+    request = SourceSearchRequest(
+        query="Smartphones",
+        category="smartphones",
+        limit=5,
+        acknowledged=True,
+    )
+    response = asyncio.run(
+        search_demo_products(request, transport=httpx.MockTransport(handler))
+    )
+
+    assert len(calls) == 1
+    assert response.query == "Smartphones"
+    assert response.metrics.accepted == 1
+
+
+def test_category_rejects_path_or_injection_characters():
+    with pytest.raises(ValidationError):
+        SourceSearchRequest(
+            query="Laptops",
+            category="../../etc/passwd",
+            limit=5,
+            acknowledged=True,
+        )

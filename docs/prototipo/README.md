@@ -15,7 +15,8 @@ python3 -m http.server 8090 --directory docs/prototipo
 Pantallas:
 
 - `login.png` — inicio de sesión.
-- `evaluator.png` — evaluador multicriterio con ranking explicado.
+- `evaluator.png` — evaluador multicriterio con combobox de categorías.
+- `ranking.png` — ranking con columna de categoría y procedencia.
 - `catalog.png` — catálogo de productos.
 - `history.png` — historial de evaluaciones.
 - `evaluator-mobile.png` — vista móvil.

@@ -71,7 +71,7 @@ Los comparadores de precios actuales ordenan el catálogo por un **criterio úni
 ### 1.6 Fuente web
 
 - **EP1:** catálogo local de productos de ejemplo cargado por seed.
-- **EP2:** [DummyJSON Products Search](https://dummyjson.com/docs/products), API que declara ofrecer datos de ejemplo para pruebas y prototipos. La consulta es manual, solicita una página (máximo 20 registros), usa timeout y valida/deduplica antes de persistir la corrida.
+- **EP2:** [DummyJSON Products](https://dummyjson.com/docs/products), API que declara ofrecer datos de ejemplo para pruebas y prototipos. La interfaz permite **elegir una categoría** (Laptops, Smartphones, Fragancias, etc.); el backend consulta `/products/category/{slug}`, solicita una página (máximo 20 registros), usa timeout y valida/deduplica antes de persistir la corrida.
 - **Límite:** sus precios, valoraciones y disponibilidad son sintéticos; la API no declara moneda. No se presentan como precios ni stock reales y se descartan imágenes, reseñas y datos de personas.
 - Mercado Libre no se integra: sus términos contienen restricciones sobre productos que compiten con sus servicios, y el acceso observado sin autorización respondió 403. Su uso requiere revisión y permiso; no se eluden controles.
 
@@ -238,7 +238,7 @@ npm start                     # proxy /api → http://localhost:3000
 | `GET` | `/api/products/:id` | Detalle de producto (público) |
 | `POST` | `/api/ranking/evaluate` | Evaluación multicriterio (USER/ADMIN) |
 | `GET` | `/api/ranking/history` | Historial del usuario autenticado (USER/ADMIN) |
-| `POST` | `/api/sources/demo-products/search` | Consulta a DummyJSON (solo ADMIN) |
+| `POST` | `/api/sources/demo-products/search` | Consulta una categoría de DummyJSON (solo ADMIN) |
 | `GET` | `/api/sources/demo-products/runs` | Corridas de fuente (solo ADMIN) |
 | `GET` | `/api/sources/demo-products/runs/:id` | Corrida y registros normalizados (solo ADMIN) |
 | `GET` | `/health` (FastAPI :8000) | Salud del motor analítico |
@@ -250,7 +250,8 @@ npm start                     # proxy /api → http://localhost:3000
 ```json
 POST /api/sources/demo-products/search
 {
-  "query": "laptop",
+  "query": "Laptops",
+  "category": "laptops",
   "limit": 10,
   "acknowledged": true
 }
@@ -310,7 +311,7 @@ Las credenciales se configuran en `.env` mediante `ADMIN_EMAIL`/`ADMIN_PASSWORD`
 | frontend | `npm run test:coverage` · `npm run build` | Login, catálogo, historial, AuthService, guard, interceptor, formularios reactivos y errores. Cobertura ~40 % de líneas. |
 | infra | `terraform fmt -check` · `terraform validate` | Sintaxis y validez del manifiesto staging |
 
-Verificación local: **30 pruebas Jest**, **6 pruebas e2e**, **27 pruebas Vitest**, **20 pruebas pytest** y `flake8` sin errores. Las pruebas no realizan llamadas externas. FastAPI reporta 90 % de cobertura total; el frontend reporta ~40 % de líneas y el backend genera reporte de cobertura en CI.
+Verificación local: **31 pruebas Jest**, **6 pruebas e2e**, **28 pruebas Vitest**, **22 pruebas pytest** y `flake8` sin errores. Las pruebas no realizan llamadas externas. FastAPI reporta 90 % de cobertura total; el frontend reporta ~40 % de líneas y el backend genera reporte de cobertura en CI.
 
 **Verificación de autenticación (21/11/2026):** con PostgreSQL temporal se aplicaron las dos migraciones y el seed. Se comprobó login `ADMIN` (200), `/api/auth/me` (200), historial sin token (401), usuario `USER` intentando consultar fuentes (403), evaluación autenticada (201) e historial filtrado por usuario. También se simuló una base creada con `db push`: el baseline marcó la migración inicial como aplicada y conservó los datos existentes.
 

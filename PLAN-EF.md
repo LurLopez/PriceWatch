@@ -24,7 +24,7 @@
 ## 1. Estado final
 
 - La implementación está **completa** en código, pruebas, Docker, CI, observabilidad, Terraform y documentación.
-- **83 pruebas automatizadas**: 30 Jest + 6 e2e + 27 Vitest + 20 pytest, más el smoke test de integración.
+- **87 pruebas automatizadas**: 31 Jest + 6 e2e + 28 Vitest + 22 pytest, más el smoke test de integración.
 - PWA, APK Android, autenticación JWT, roles, staging compose, rollback y evaluación adaptativa verificados.
 - Pendientes **externos al repositorio**: crear el archivo Figma y pegar el enlace; configurar un VPS/dominio y los secretos `STAGING_*` para una URL pública.
 - La entrega puede demostrarse en local con Docker Compose y en Android con el emulador.

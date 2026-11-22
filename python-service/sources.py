@@ -21,13 +21,25 @@ from pydantic import BaseModel, Field, field_validator
 
 SOURCE_NAME = "dummyjson"
 SOURCE_ENDPOINT = "https://dummyjson.com/products/search"
+SOURCE_CATEGORY_ENDPOINT = "https://dummyjson.com/products/category"
 MAX_RESPONSE_BYTES = 1_000_000
 
 
 class SourceSearchRequest(BaseModel):
     query: str = Field(min_length=2, max_length=80)
+    category: Optional[str] = Field(default=None, min_length=2, max_length=50)
     limit: int = Field(default=10, ge=2, le=20)
     acknowledged: bool
+
+    @field_validator("category")
+    @classmethod
+    def normalize_category(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        cleaned = value.strip().lower()
+        if not re.fullmatch(r"[a-z0-9-]+", cleaned):
+            raise ValueError("La categoría no tiene un formato válido.")
+        return cleaned
 
     @field_validator("query")
     @classmethod
@@ -254,10 +266,14 @@ async def search_demo_products(
             follow_redirects=False,
             transport=transport,
         ) as client:
-            response = await client.get(
-                SOURCE_ENDPOINT,
-                params={"q": request.query, "limit": request.limit},
-            )
+            if request.category:
+                url = f"{SOURCE_CATEGORY_ENDPOINT}/{request.category}"
+                params = {"limit": request.limit}
+            else:
+                url = SOURCE_ENDPOINT
+                params = {"q": request.query, "limit": request.limit}
+
+            response = await client.get(url, params=params)
     except httpx.TimeoutException as exc:
         raise HTTPException(
             status_code=504,

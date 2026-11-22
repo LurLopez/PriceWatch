@@ -95,12 +95,21 @@ describe('EvaluatorComponent EP2', () => {
     expect(api.evaluateRanking).not.toHaveBeenCalled();
   });
 
+  it('envía la categoría seleccionada en el combobox', () => {
+    const { component, api } = createComponent();
+
+    component.evaluatorForm.controls['sourceCategory'].setValue('smartphones');
+    component.searchSource();
+
+    expect(api.searchDemoProducts).toHaveBeenCalledWith('Smartphones', 10, 'smartphones');
+  });
+
   it('evaluates only the explicitly queried source run and exposes its provenance', () => {
     const { component, api } = createComponent();
 
     component.searchSource();
 
-    expect(api.searchDemoProducts).toHaveBeenCalledWith('laptop', 10);
+    expect(api.searchDemoProducts).toHaveBeenCalledWith('Laptops', 10, 'laptops');
     expect(api.evaluateRanking).toHaveBeenCalledWith(component.weights, 'equilibrado', 'run-123');
     expect(component.activeSourceRun?.run_id).toBe('run-123');
     expect(component.getSourceListing('dummyjson:2')?.content_hash).toBe('b'.repeat(64));

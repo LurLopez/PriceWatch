@@ -3,6 +3,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   Equals,
   IsInt,
+  IsOptional,
   IsString,
   Length,
   Matches,
@@ -19,6 +20,19 @@ export class SearchDemoProductsDto {
     message: 'La consulta solo puede contener palabras y códigos de producto.',
   })
   query!: string;
+
+  @ApiProperty({
+    example: 'laptops',
+    required: false,
+    description: 'Slug de categoría de DummyJSON (opcional)',
+  })
+  @IsOptional()
+  @IsString()
+  @Length(2, 50)
+  @Matches(/^[a-z0-9-]+$/, {
+    message: 'La categoría solo puede contener minúsculas, números y guiones.',
+  })
+  category?: string;
 
   @ApiProperty({ example: 10, minimum: 2, maximum: 20, required: false })
   @Type(() => Number)

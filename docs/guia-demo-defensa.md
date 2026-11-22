@@ -42,7 +42,7 @@ docker compose ps
 ## 4. Escenario 3 — Información web
 
 1. Iniciar sesión como `ADMIN`.
-2. En “Comparar una muestra web”, buscar `laptop` y pulsar **Consultar fuente**.
+2. En “Comparar una muestra web”, elegir la categoría **Laptops** (o **Smartphones** para mostrar variedad) y pulsar **Consultar fuente**.
 3. Mostrar:
    - Run ID, fecha, duración.
    - Recibidos/aceptados/rechazados/duplicados.

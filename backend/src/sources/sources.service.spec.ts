@@ -157,6 +157,30 @@ describe('SourcesService', () => {
     expect(result.products[0].currency).toBeNull();
   });
 
+  it('reenvía la categoría seleccionada al motor Python', async () => {
+    const { service, httpService } = createService(true, {
+      ...sourceResponse,
+      query: 'Smartphones',
+    });
+    const dto = new SearchDemoProductsDto();
+    dto.query = 'Smartphones';
+    dto.category = 'smartphones';
+    dto.limit = 5;
+    dto.acknowledged = true;
+
+    await service.searchDemoProducts(dto);
+
+    const requestBody = (
+      httpService as unknown as { post: jest.Mock }
+    ).post.mock.calls[0][1];
+    expect(requestBody).toEqual({
+      query: 'Smartphones',
+      category: 'smartphones',
+      limit: 5,
+      acknowledged: true,
+    });
+  });
+
   it('enforces a cooldown between manual requests in the same process', async () => {
     const { service } = createService();
     const dto = new SearchDemoProductsDto();

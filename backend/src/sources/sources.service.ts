@@ -107,6 +107,7 @@ export class SourcesService {
           `${this.pythonUrl}/sources/demo-products/search`,
           {
             query: dto.query,
+            ...(dto.category ? { category: dto.category } : {}),
             limit: dto.limit,
             acknowledged: dto.acknowledged,
           },

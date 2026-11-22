@@ -124,3 +124,21 @@ Eso entrega una URL pública temporal. **No reemplaza el staging automatizado**:
 - `docker-compose.staging.yml`
 - `scripts/deploy.sh`, `scripts/healthcheck.sh`, `scripts/rollback.sh`
 - `scripts/smoke-test.sh` y job `integration` del CI
+
+## 11. Nota de entorno (GitHub Actions)
+
+En el repositorio de entrega, los runs de GitHub Actions aparecieron con **0 pasos** y fallo inmediato, incluso para jobs que no dependen de secretos. Eso ocurre antes de que un runner ejecute el workflow; no es un error de los tests ni del YAML.
+
+Verificaciones realizadas:
+
+- El YAML se parseó correctamente y los workflows están en `main`.
+- Todos los jobs se ejecutaron manualmente en local: build, tests, e2e, cobertura, Trivy, Terraform, Docker Compose y smoke test.
+- El fallo remoto es de configuración/cuenta, no del código.
+
+Revisar en GitHub:
+
+1. **Settings → Actions → General → Actions permissions**: permitir acciones.
+2. **Billing & plans → Actions**: límite de minutos o método de pago.
+3. Re-ejecutar el workflow con **Run workflow**.
+
+Mientras tanto, la evidencia local y los scripts (`scripts/smoke-test.sh`, `scripts/deploy.sh`) permiten demostrar el pipeline y el despliegue.

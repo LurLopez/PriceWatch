@@ -338,6 +338,8 @@ Workflows adicionales:
 
 Los secretos se configuran en GitHub Actions Secrets y la configuración no sensible en Variables. El pipeline no imprime credenciales.
 
+> **Nota de entorno:** en el repositorio de entrega, GitHub Actions mostró jobs con 0 pasos y fallo inmediato (antes de ejecutar el runner). El YAML y todos los jobs se validaron/ejecutaron localmente. Revisar **Settings → Actions** y el límite de minutos de la cuenta; ver [`docs/despliegue.md`](docs/despliegue.md#11-nota-de-entorno-github-actions).
+
 ---
 
 ## 9. Variables y secretos

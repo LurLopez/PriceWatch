@@ -44,6 +44,10 @@ assert_status() {
   echo "OK  $label ($status)"
 }
 
+echo "Esperando disponibilidad del stack..."
+wait_for "$API_URL/health" "API disponible"
+wait_for "$WEB_URL/" "frontend disponible"
+
 assert_status 200 GET "$API_URL/health" "health NestJS/PostgreSQL/FastAPI" \
   -H 'x-request-id: smoke-health-001'
 

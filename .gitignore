@@ -61,3 +61,7 @@ htmlcov/
 
 # Despliegue
 .last_image_tag
+
+# Documentos abiertos
+.~lock.*
+~$*.docx
